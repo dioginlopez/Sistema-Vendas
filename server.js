@@ -10,6 +10,9 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const SESSION_SECRET = process.env.SESSION_SECRET || 's3cr3t-local';
 const isProduction = process.env.NODE_ENV === 'production';
+const BOOTSTRAP_ADMIN_CPF = normalizeCpf(process.env.BOOTSTRAP_ADMIN_CPF || '');
+const BOOTSTRAP_ADMIN_SENHA = String(process.env.BOOTSTRAP_ADMIN_SENHA || '');
+const BOOTSTRAP_ADMIN_NOME = String(process.env.BOOTSTRAP_ADMIN_NOME || 'ADMIN').trim() || 'ADMIN';
 
 if (isProduction) {
   // Allow secure cookies behind reverse proxies (Railway/Render).
@@ -33,6 +36,35 @@ function ensureDbShape() {
   const vendaCounterAtual = Number(db.data.vendaCounter);
   db.data.vendaCounter = Number.isFinite(vendaCounterAtual) && vendaCounterAtual > 0 ? vendaCounterAtual : 1;
   db.data.lastSaleId = db.data.lastSaleId ?? null;
+}
+
+function ensureBootstrapAdmin() {
+  if (!Array.isArray(db.data.users) || db.data.users.length > 0) {
+    return false;
+  }
+
+  if (!BOOTSTRAP_ADMIN_CPF || !BOOTSTRAP_ADMIN_SENHA) {
+    return false;
+  }
+
+  if (BOOTSTRAP_ADMIN_SENHA.length < 4) {
+    console.warn('BOOTSTRAP_ADMIN_SENHA ignorada: senha deve ter pelo menos 4 caracteres.');
+    return false;
+  }
+
+  const novoAdmin = {
+    id: nanoid(),
+    nome: BOOTSTRAP_ADMIN_NOME,
+    cpf: BOOTSTRAP_ADMIN_CPF,
+    senha: BOOTSTRAP_ADMIN_SENHA,
+    perfil: 'admin',
+    ativo: true,
+    criadoEm: new Date().toISOString(),
+  };
+
+  db.data.users.push(novoAdmin);
+  console.log(`Admin bootstrap criado para o CPF ${BOOTSTRAP_ADMIN_CPF}.`);
+  return true;
 }
 
 // Setup LowDB
@@ -156,7 +188,8 @@ async function ensureDbLoaded() {
 
   const before = JSON.stringify(db.data || {});
   ensureDbShape();
-  if (before !== JSON.stringify(db.data || {})) {
+  const bootstrapCriado = ensureBootstrapAdmin();
+  if (bootstrapCriado || before !== JSON.stringify(db.data || {})) {
     await db.write();
   }
 }

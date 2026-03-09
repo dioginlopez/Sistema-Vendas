@@ -79,6 +79,9 @@ http://localhost:3000
 - `PORT`: porta HTTP (padrao `3000`)
 - `SESSION_SECRET`: segredo da sessao (obrigatorio em producao)
 - `NODE_ENV`: use `production` em deploy
+- `BOOTSTRAP_ADMIN_CPF`: CPF do primeiro admin (somente quando banco estiver sem usuarios)
+- `BOOTSTRAP_ADMIN_SENHA`: senha do primeiro admin
+- `BOOTSTRAP_ADMIN_NOME`: nome do primeiro admin (opcional, padrao `ADMIN`)
 
 Exemplo PowerShell:
 
@@ -114,6 +117,14 @@ npm start
    npm start
    ```
 4. Configurar `SESSION_SECRET` e `NODE_ENV=production`
+
+Para primeiro acesso em deploy novo, adicione tambem:
+
+- `BOOTSTRAP_ADMIN_CPF=00000000000`
+- `BOOTSTRAP_ADMIN_SENHA=1234`
+- `BOOTSTRAP_ADMIN_NOME=ADMIN`
+
+Depois do primeiro login e criacao de usuarios reais, voce pode remover `BOOTSTRAP_ADMIN_SENHA`.
 
 ### Render (Blueprint 1-clique)
 
