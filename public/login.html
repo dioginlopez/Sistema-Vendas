@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    :root {
+      --bg-1: #eef4fb;
+      --bg-2: #dce9f8;
+      --ink: #0f2942;
+      --muted: #4f6479;
+      --brand: #0f766e;
+      --brand-2: #14b8a6;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      font-family: "Manrope", "Segoe UI", Tahoma, sans-serif;
+      background:
+        radial-gradient(circle at 10% 10%, rgba(20, 184, 166, 0.16), transparent 45%),
+        radial-gradient(circle at 90% 20%, rgba(15, 118, 110, 0.14), transparent 40%),
+        linear-gradient(165deg, var(--bg-1), var(--bg-2));
+      color: var(--ink);
+      padding: 20px;
+    }
+
+    .login-box {
+      width: min(100%, 400px);
+      background: rgba(255, 255, 255, 0.96);
+      border: 1px solid rgba(15, 118, 110, 0.2);
+      border-radius: 18px;
+      box-shadow: 0 20px 45px rgba(15, 23, 42, 0.15);
+      padding: 28px 24px;
+      backdrop-filter: blur(4px);
+    }
+
+    .login-title {
+      font-size: 1.4rem;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    .login-logo {
+      width: 86px;
+      height: 86px;
+      object-fit: contain;
+      display: block;
+      margin: 0 auto 12px auto;
+      filter: drop-shadow(0 8px 14px rgba(15, 23, 42, 0.18));
+    }
+
+    .login-subtitle {
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin-bottom: 18px;
+    }
+
+    .field {
+      position: relative;
+    }
+
+    .field i {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #5f7287;
+      font-size: 1rem;
+      pointer-events: none;
+    }
+
+    .field .form-control {
+      padding: 11px 12px 11px 38px;
+      border-radius: 10px;
+      border: 1px solid #c9d6e5;
+      font-size: 0.95rem;
+    }
+
+    .field .form-control:focus {
+      border-color: #14b8a6;
+      box-shadow: 0 0 0 0.2rem rgba(20, 184, 166, 0.2);
+    }
+
+    .btn-login {
+      border: 0;
+      border-radius: 10px;
+      padding: 11px;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--brand), var(--brand-2));
+      box-shadow: 0 10px 20px rgba(15, 118, 110, 0.28);
+    }
+
+    .mostrar-senha {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.88rem;
+      color: var(--muted);
+      margin-bottom: 14px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .login-footer {
+      margin-top: 14px;
+      text-align: center;
+      font-size: 0.78rem;
+      color: #5f7287;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-box">
+    <img class="login-logo" src="https://csspp.quantumandtime.com.br/assets/imgs/11-rc-mec-logo.png" alt="Símbolo CSSPP">
+    <h1 class="login-title text-center"><i class="bi bi-shield-lock-fill" aria-hidden="true"></i> Sistema de controle de vendas</h1>
+    <p class="login-subtitle text-center">Clube dos Subtenentes e Sargentos do 11º RC MEC</p>
+    <div id="loginErro" class="alert alert-danger" style="display:none; padding:8px 10px; margin-bottom:12px;"></div>
+    <form id="loginForm" method="post" action="/login">
+      <div class="mb-3">
+        <label class="form-label">CPF:</label>
+        <div class="field">
+          <i class="bi bi-person-vcard" aria-hidden="true"></i>
+          <input type="text" name="cpf" class="form-control" required>
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Senha:</label>
+        <div class="field">
+          <i class="bi bi-key" aria-hidden="true"></i>
+          <input type="password" id="senhaInput" name="senha" class="form-control" required>
+        </div>
+      </div>
+      <label class="mostrar-senha" for="mostrarSenhaInput">
+        <input type="checkbox" id="mostrarSenhaInput">
+        Mostrar senha
+      </label>
+      <button id="btnEntrar" type="submit" class="btn btn-primary btn-login w-100"><i class="bi bi-box-arrow-in-right" aria-hidden="true"></i> Entrar</button>
+    </form>
+    <div class="login-footer">© 2026 Quantum and time - Todos os direitos reservados.</div>
+  </div>
+
+  <script>
+    const form = document.getElementById('loginForm');
+    const erroBox = document.getElementById('loginErro');
+    const btnEntrar = document.getElementById('btnEntrar');
+    const senhaInput = document.getElementById('senhaInput');
+    const mostrarSenhaInput = document.getElementById('mostrarSenhaInput');
+
+    mostrarSenhaInput.addEventListener('change', () => {
+      senhaInput.type = mostrarSenhaInput.checked ? 'text' : 'password';
+    });
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      erroBox.style.display = 'none';
+      btnEntrar.disabled = true;
+      btnEntrar.textContent = 'Entrando...';
+
+      const formData = new FormData(form);
+      const body = new URLSearchParams();
+      body.set('cpf', String(formData.get('cpf') || ''));
+      body.set('senha', String(formData.get('senha') || ''));
+
+      try {
+        const resposta = await fetch('/login', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Accept': 'application/json',
+            'X-Requested-With': 'fetch'
+          },
+          body: body.toString()
+        });
+
+        const dados = await resposta.json().catch(() => ({}));
+        if (!resposta.ok) {
+          throw new Error(dados.error || 'Não foi possível entrar no sistema');
+        }
+
+        const destino = dados.redirect || '/';
+        // replace evita voltar para o login ao usar botão "voltar" após autenticar
+        window.location.replace(destino);
+      } catch (erro) {
+        const msg = String(erro && erro.message ? erro.message : '');
+        erroBox.textContent = msg || 'Servidor offline. Inicie o backend (node server.js) e tente novamente.';
+        erroBox.style.display = 'block';
+      } finally {
+        btnEntrar.disabled = false;
+        btnEntrar.innerHTML = '<i class="bi bi-box-arrow-in-right" aria-hidden="true"></i> Entrar';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "watch": [
+    "server.js",
+    "routes"
+  ],
+  "ext": "js",
+  "ignore": [
+    "db.json",
+    "public/**",
+    ".vscode/**",
+    "Git/**"
+  ],
+  "delay": "300"
+}

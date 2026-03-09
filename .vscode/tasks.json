@@ -1,0 +1,19 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Start Server",
+      "type": "shell",
+      "command": "$env:Path='C:\\Program Files\\nodejs;'+$env:Path; & 'C:\\Program Files\\nodejs\\npm.cmd' run dev",
+      "isBackground": true,
+      "group": "build",
+      "runOptions": {
+        "runOn": "folderOpen"
+      },
+      "presentation": {
+        "reveal": "always"
+      },
+      "problemMatcher": []
+    }
+  ]
+}
