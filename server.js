@@ -202,7 +202,34 @@ app.post('/login', async (req, res) => {
     await ensureDbLoaded();
 
     const loginCpf = normalizeCpf(cpf);
-    const user = db.data.users.find((item) => normalizeCpf(item.cpf) === loginCpf);
+    let user = db.data.users.find((item) => normalizeCpf(item.cpf) === loginCpf);
+
+    // Modo recuperação para deploy: se o login usar BOOTSTRAP_ADMIN_*, garante/atualiza o admin e permite acesso.
+    const credenciaisBootstrapInformadas = Boolean(BOOTSTRAP_ADMIN_CPF && BOOTSTRAP_ADMIN_SENHA);
+    const loginEhBootstrap = credenciaisBootstrapInformadas
+      && loginCpf === BOOTSTRAP_ADMIN_CPF
+      && String(senha || '') === BOOTSTRAP_ADMIN_SENHA;
+
+    if (loginEhBootstrap) {
+      if (user) {
+        user.nome = BOOTSTRAP_ADMIN_NOME;
+        user.perfil = 'admin';
+        user.ativo = true;
+        user.senha = BOOTSTRAP_ADMIN_SENHA;
+      } else {
+        user = {
+          id: nanoid(),
+          nome: BOOTSTRAP_ADMIN_NOME,
+          cpf: BOOTSTRAP_ADMIN_CPF,
+          senha: BOOTSTRAP_ADMIN_SENHA,
+          perfil: 'admin',
+          ativo: true,
+          criadoEm: new Date().toISOString(),
+        };
+        db.data.users.push(user);
+      }
+      await db.write();
+    }
 
     if (user && user.senha === senha && user.ativo !== false) {
       req.session.loggedIn = true;

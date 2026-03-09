@@ -126,6 +126,8 @@ Para primeiro acesso em deploy novo, adicione tambem:
 
 Depois do primeiro login e criacao de usuarios reais, voce pode remover `BOOTSTRAP_ADMIN_SENHA`.
 
+Se aparecer `Credenciais inválidas` no Render, mantendo essas variaveis configuradas, o backend agora recria/reativa automaticamente o admin bootstrap no login.
+
 ### Render (Blueprint 1-clique)
 
 Este repositorio inclui `render.yaml`.
