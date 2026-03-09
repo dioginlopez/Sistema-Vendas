@@ -142,11 +142,20 @@ Com isso, o Render aplica automaticamente:
 - `startCommand`: `npm start`
 - `NODE_ENV=production`
 - `SESSION_SECRET` gerado automaticamente
+- Banco PostgreSQL gerenciado (`sistema-vendas-db`)
+- Disco persistente montado em `/var/data`
+- `DB_FILE=/var/data/db.json` para persistir LowDB entre deploys/restarts
+- `DATABASE_URL` ligado automaticamente ao PostgreSQL
+
+Observacao importante:
+
+- A aplicacao atual usa `LowDB` (`db.json`) como banco principal.
+- O PostgreSQL criado no Blueprint fica pronto para uma migracao futura (ja com `DATABASE_URL` no ambiente).
 
 ## Persistencia de dados
 
 - Os dados ficam em `db.json`.
-- Em nuvem, use volume/disco persistente.
+- Em Render, o arquivo e persistido no disco (`/var/data/db.json`).
 - Sem persistencia, os dados se perdem em restart/redeploy.
 
 ## GitHub e arquivos sensiveis

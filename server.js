@@ -5,6 +5,7 @@ const { nanoid } = require('nanoid');
 const { Low } = require('lowdb');
 const { JSONFile } = require('lowdb/node');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -68,7 +69,8 @@ function ensureBootstrapAdmin() {
 }
 
 // Setup LowDB
-const file = path.join(__dirname, 'db.json');
+const file = String(process.env.DB_FILE || '').trim() || path.join(__dirname, 'db.json');
+fs.mkdirSync(path.dirname(file), { recursive: true });
 const adapter = new JSONFile(file);
 const db = new Low(adapter, { products: [], users: [], vendas: [], associados: [], vendaCounter: 1, lastSaleId: null });
 
