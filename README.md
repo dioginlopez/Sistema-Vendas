@@ -1,53 +1,110 @@
 # CSSPP - Sistema de Vendas e Estoque
 
-Aplicacao em Node.js/Express para controle de vendas, estoque, fiado, associados e usuarios.
+Aplicacao web em Node.js + Express para controle de vendas, estoque, fiado, associados e usuarios.
 
-## Executar localmente
+## Requisitos
 
-1. Instale as dependencias:
+- Node.js 18+ (recomendado LTS)
+- npm 9+
+
+## Estrutura principal
+
+- `server.js`: servidor Express, sessao e APIs
+- `routes/products.js`: rotas de produtos
+- `public/`: telas (`login.html`, `index.html`, `gestao.html`)
+- `db.json`: base de dados local (nao versionada)
+- `db.example.json`: modelo de base para inicializacao
+
+## Configuracao inicial
+
+1. Instale dependencias:
    ```sh
    npm install
    ```
-2. Inicie o servidor:
-   ```sh
-   npm start
+2. Crie o arquivo de dados a partir do exemplo:
+   ```powershell
+   Copy-Item db.example.json db.json
    ```
-3. Acesse:
-   ```text
-   http://localhost:3000
-   ```
+
+## Primeiro acesso (importante)
+
+O login depende de usuarios existentes em `db.json`.
+Se sua base estiver vazia, crie manualmente um admin em `db.json` antes de abrir o sistema.
+
+Exemplo de usuario admin:
+
+```json
+{
+  "id": "admin-inicial",
+  "nome": "ADMIN",
+  "cpf": "000.000.000-00",
+  "senha": "1234",
+  "perfil": "admin",
+  "ativo": true,
+  "criadoEm": "2026-01-01T00:00:00.000Z"
+}
+```
+
+Insira esse objeto dentro de `users` no `db.json`.
+Depois de entrar, altere credenciais para dados reais.
+
+## Rodando localmente
+
+### Producao local
+
+```sh
+npm start
+```
+
+### Desenvolvimento (com nodemon)
+
+```sh
+npm run dev
+```
+
+Em PowerShell, se `npm` falhar por policy, use:
+
+```powershell
+& "C:\Program Files\nodejs\npm.cmd" run dev
+```
+
+Abra no navegador:
+
+```text
+http://localhost:3000
+```
 
 ## Variaveis de ambiente
 
-- `PORT`: porta HTTP do servidor (opcional em desenvolvimento).
-- `SESSION_SECRET`: segredo da sessao (obrigatorio em producao).
-- `NODE_ENV`: use `production` em ambiente publicado.
+- `PORT`: porta HTTP (padrao `3000`)
+- `SESSION_SECRET`: segredo da sessao (obrigatorio em producao)
+- `NODE_ENV`: use `production` em deploy
 
-Exemplo (PowerShell):
+Exemplo PowerShell:
 
 ```powershell
-$env:SESSION_SECRET="uma-chave-longa-e-segura"
+$env:SESSION_SECRET="chave-longa-segura"
 $env:NODE_ENV="production"
 npm start
 ```
 
-## Publicacao (Railway)
+## Deploy
 
-1. Suba o projeto para um repositorio no GitHub.
-2. No Railway, clique em `New Project` > `Deploy from GitHub repo`.
-3. Selecione o repositorio.
-4. Configure as variaveis:
-   - `SESSION_SECRET` = chave longa aleatoria
-   - `NODE_ENV` = `production`
-5. Start command:
+### Railway
+
+1. `New Project` > `Deploy from GitHub repo`
+2. Selecione o repositorio
+3. Configure env vars:
+   - `SESSION_SECRET`
+   - `NODE_ENV=production`
+4. Start command:
    ```sh
    npm start
    ```
-6. Abra a URL gerada pelo Railway.
 
-## Publicacao (Render)
+### Render
 
-1. Crie um `Web Service` conectado ao GitHub.
+1. Criar `Web Service` conectado ao GitHub
 2. Build command:
    ```sh
    npm install
@@ -56,26 +113,36 @@ npm start
    ```sh
    npm start
    ```
-4. Configure `SESSION_SECRET` e `NODE_ENV=production`.
+4. Configurar `SESSION_SECRET` e `NODE_ENV=production`
+
+### Render (Blueprint 1-clique)
+
+Este repositorio inclui `render.yaml`.
+
+1. No Render, clique em `New` -> `Blueprint`.
+2. Selecione o repositorio `dioginlopez/Sistema-Vendas`.
+3. Confirme a criacao do servico.
+
+Com isso, o Render aplica automaticamente:
+
+- `buildCommand`: `npm install`
+- `startCommand`: `npm start`
+- `NODE_ENV=production`
+- `SESSION_SECRET` gerado automaticamente
 
 ## Persistencia de dados
 
-- O backend salva os dados em `db.json`.
-- Em nuvem, confirme que o servidor possui disco persistente/volume.
-- Sem disco persistente, os dados podem ser perdidos apos reinicio/redeploy.
+- Os dados ficam em `db.json`.
+- Em nuvem, use volume/disco persistente.
+- Sem persistencia, os dados se perdem em restart/redeploy.
 
-## Funcionalidades principais
+## GitHub e arquivos sensiveis
 
-- Login por CPF/senha com sessao.
-- Controle de perfil (`admin` e `operador`).
-- Cadastro e venda de produtos.
-- Carrinho, desconto, formas de pagamento e fiado.
-- Edicao de venda por numero.
-- Gestao de associados e usuarios.
-- Relatorios e backup/restauracao.
+`db.json` esta no `.gitignore` para evitar publicar dados reais.
+Suba apenas `db.example.json` como modelo.
 
-## Seguranca de acesso
+## Seguranca recomendada
 
-- Nao utilize credenciais padrao.
-- Mantenha pelo menos um usuario administrador ativo no sistema.
-- Recomendacao: altere periodicamente as senhas de acesso.
+- Nao manter senha padrao em producao
+- Manter pelo menos um usuario admin ativo
+- Rotacionar senhas periodicamente
