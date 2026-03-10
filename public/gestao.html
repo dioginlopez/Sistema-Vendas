@@ -1438,7 +1438,7 @@
                 <div id="visao" class="tab-content ativo">
                     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom: 12px;">
                         <button class="btn btn-primary" onclick="abrirModalProduto()" style="width:auto;margin-top:0;"><i class="bi bi-plus-circle" aria-hidden="true"></i> Adicionar Produto</button>
-                        <button class="btn btn-secondary" onclick="imprimirProdutosEstoqueCritico()" style="width:auto;margin-top:0;"><i class="bi bi-printer" aria-hidden="true"></i> Imprimir Estoque <= 5</button>
+                        <button class="btn btn-secondary" onclick="imprimirProdutosEstoqueCritico()" style="width:auto;margin-top:0;"><i class="bi bi-printer" aria-hidden="true"></i> Imprimir Estoque Critico</button>
                     </div>
                     <div class="form-group" style="margin-bottom: 10px;">
                         <input type="text" id="filtroEstoqueGestao" class="form-control" placeholder="Pesquisar no estoque por nome ou codigo de barras" oninput="filtrarEstoqueGestao()">
@@ -2936,11 +2936,11 @@
 
         function imprimirProdutosEstoqueCritico() {
             const produtosCriticos = produtos
-                .filter(produto => Number(produto.estoque) <= 5)
+                .filter(produto => Number(produto.estoque) <= 10)
                 .sort((a, b) => Number(a.estoque) - Number(b.estoque));
 
             if (produtosCriticos.length === 0) {
-                mostrarAlerta('Nenhum produto com estoque igual ou menor que 5', 'erro');
+                mostrarAlerta('Nenhum produto em estoque critico (igual ou menor que 10)', 'erro');
                 return;
             }
 
@@ -2967,7 +2967,7 @@
                 <html lang="pt-BR">
                 <head>
                     <meta charset="UTF-8">
-                    <title>Estoque Critico (<= 5)</title>
+                    <title>Estoque Critico (<= 10)</title>
                     <style>
                         body { font-family: Arial, sans-serif; margin: 24px; color: #111827; }
                         h1 { margin: 0 0 6px 0; font-size: 20px; }
@@ -2980,7 +2980,7 @@
                     </style>
                 </head>
                 <body>
-                    <h1>Produtos com estoque <= 5 unidades</h1>
+                    <h1>Produtos com estoque critico (<= 10 unidades)</h1>
                     <p>Gerado em: ${escaparHtml(agora)}</p>
                     <table>
                         <thead>
