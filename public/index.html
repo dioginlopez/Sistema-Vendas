@@ -1441,10 +1441,10 @@
                 <input type="text" id="produtoCodigoBarras" placeholder="Ex: 7891234567890" inputmode="numeric" maxlength="20">
             </div>
             <div class="form-group">
-                <label for="produtoImagemUrl">Imagem do Produto (escolher na internet):</label>
+                <label for="produtoImagemUrl">Imagem do Produto (buscar no Edge):</label>
                 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
                     <input type="text" id="produtoImagemUrl" class="form-control" placeholder="Cole a URL ou escolha uma imagem abaixo" style="flex:1;min-width:220px;">
-                    <button type="button" class="btn btn-secondary" onclick="buscarImagensInternetProduto()" style="width:auto;margin-top:0;padding:10px 14px;">Buscar na Internet</button>
+                    <button type="button" class="btn btn-secondary" onclick="buscarImagensInternetProduto()" style="width:auto;margin-top:0;padding:10px 14px;">Buscar no Edge</button>
                     <button type="button" class="btn btn-secondary" onclick="baixarImagemProdutoAtual()" style="width:auto;margin-top:0;padding:10px 14px;">Baixar Foto</button>
                 </div>
                 <div style="margin-top:8px;">
@@ -1768,25 +1768,19 @@
             });
         }
 
-        async function buscarImagensInternetProduto(mostrarStatus = true) {
+        function buscarImagensInternetProduto() {
             const nome = String(document.getElementById('produtoNome')?.value || '').trim();
             const codigoBarras = String(document.getElementById('produtoCodigoBarras')?.value || '').trim();
+            const termo = codigoBarras || nome;
 
-            if (!nome && !codigoBarras) {
-                if (mostrarStatus) mostrarAlerta('Digite nome ou codigo de barras para buscar imagens', 'erro');
+            if (!termo) {
+                mostrarAlerta('Digite nome ou codigo de barras para buscar no Edge', 'erro');
                 return;
             }
 
-            const opcoes = await buscarOpcoesImagemProduto(nome, codigoBarras);
-            if (!opcoes.length) {
-                renderizarOpcoesImagemProduto([]);
-                if (mostrarStatus) mostrarAlerta('Nenhuma imagem encontrada no momento', 'erro');
-                return;
-            }
-
-            renderizarOpcoesImagemProduto(opcoes);
-            atualizarPreviewImagemProduto(String(opcoes[0].imageUrl || ''), 'Selecione uma das opcoes de imagem');
-            if (mostrarStatus) mostrarAlerta(`${opcoes.length} imagem(ns) encontrada(s)`, 'sucesso');
+            const consulta = encodeURIComponent(`${termo} produto embalagem`);
+            window.open(`https://www.bing.com/images/search?q=${consulta}`, '_blank', 'noopener');
+            mostrarAlerta('Busca aberta no Edge/Bing. Escolha uma imagem e cole a URL.', 'sucesso');
         }
 
         function usuarioEhAdmin() {
