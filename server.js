@@ -623,10 +623,42 @@ app.get('/api/product-image', requireLogin, async (req, res) => {
     }
   }
 
+  function gerarSvgProdutoFallback(texto) {
+    const base = String(texto || 'PRODUTO').toUpperCase().slice(0, 28);
+    let hash = 0;
+    for (const ch of base) hash = ((hash << 5) - hash + ch.charCodeAt(0)) | 0;
+    const hue = Math.abs(hash) % 360;
+    const bg = `hsl(${hue} 62% 42%)`;
+    const bg2 = `hsl(${(hue + 40) % 360} 65% 30%)`;
+    const linhas = base.match(/.{1,14}/g) || ['PRODUTO'];
+
+    const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="768" height="768" viewBox="0 0 768 768">
+        <defs>
+          <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="${bg}" />
+            <stop offset="100%" stop-color="${bg2}" />
+          </linearGradient>
+        </defs>
+        <rect width="768" height="768" fill="url(#g)"/>
+        <rect x="64" y="64" width="640" height="640" rx="38" fill="rgba(255,255,255,0.16)" stroke="rgba(255,255,255,0.24)"/>
+        <text x="384" y="300" text-anchor="middle" font-size="110" font-family="Arial" fill="white">📦</text>
+        <text x="384" y="430" text-anchor="middle" font-size="46" font-family="Arial" font-weight="700" fill="white">${linhas[0] || ''}</text>
+        <text x="384" y="490" text-anchor="middle" font-size="46" font-family="Arial" font-weight="700" fill="white">${linhas[1] || ''}</text>
+        <text x="384" y="560" text-anchor="middle" font-size="26" font-family="Arial" fill="rgba(255,255,255,0.9)">IMAGEM GERADA AUTOMATICAMENTE</text>
+      </svg>
+    `.trim();
+
+    return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+  }
+
   if (!imageUrl) {
-    const prompt = `${termoFallback}, product packaging, e-commerce photo, studio lighting`;
-    imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=768&height=768&seed=${encodeURIComponent(termoFallback)}`;
-    source = 'ai-fallback';
+    imageUrl = gerarSvgProdutoFallback(termoFallback);
+    source = 'local-fallback';
+  }
+
+  if (imageUrl.startsWith('data:image/')) {
+    return res.json({ imageUrl, originalUrl: imageUrl, source });
   }
 
   const proxiedUrl = `/api/image-proxy?url=${encodeURIComponent(imageUrl)}`;
