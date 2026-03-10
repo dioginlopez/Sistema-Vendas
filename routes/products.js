@@ -2,12 +2,66 @@ const express = require('express');
 const router = express.Router();
 const { Low } = require('lowdb');
 const { JSONFile } = require('lowdb/node');
+const { Pool } = require('pg');
 const path = require('path');
+const fs = require('fs');
 const { nanoid } = require('nanoid');
 
-const file = path.join(__dirname, '../db.json');
+const DATABASE_URL = String(process.env.DATABASE_URL || '').trim();
+const file = String(process.env.DB_FILE || '').trim() || path.join(__dirname, '../db.json');
+fs.mkdirSync(path.dirname(file), { recursive: true });
 const adapter = new JSONFile(file);
 const db = new Low(adapter, { products: [] });
+
+function getPgSslConfig() {
+  if (!DATABASE_URL) {
+    return false;
+  }
+  const forceDisableSsl = String(process.env.PGSSLMODE || '').toLowerCase() === 'disable';
+  const localConn = DATABASE_URL.includes('localhost') || DATABASE_URL.includes('127.0.0.1');
+  if (forceDisableSsl || localConn) {
+    return false;
+  }
+  return { rejectUnauthorized: false };
+}
+
+const pgPool = DATABASE_URL
+  ? new Pool({
+      connectionString: DATABASE_URL,
+      ssl: getPgSslConfig(),
+    })
+  : null;
+
+async function syncProductsToPg(products) {
+  if (!pgPool) {
+    return;
+  }
+
+  await pgPool.query(`
+    CREATE TABLE IF NOT EXISTS app_state (
+      id INTEGER PRIMARY KEY,
+      state JSONB NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  const current = await pgPool.query('SELECT state FROM app_state WHERE id = 1 LIMIT 1');
+  const baseState = current.rows.length && current.rows[0].state && typeof current.rows[0].state === 'object'
+    ? current.rows[0].state
+    : { products: [], users: [], vendas: [], associados: [], vendaCounter: 1, lastSaleId: null };
+
+  baseState.products = Array.isArray(products) ? products : [];
+
+  await pgPool.query(
+    `
+      INSERT INTO app_state (id, state, updated_at)
+      VALUES (1, $1::jsonb, NOW())
+      ON CONFLICT (id)
+      DO UPDATE SET state = EXCLUDED.state, updated_at = NOW()
+    `,
+    [JSON.stringify(baseState)],
+  );
+}
 
 function requireAdmin(req, res, next) {
   const perfil = req.session && req.session.user ? req.session.user.perfil : null;
@@ -21,6 +75,19 @@ function requireAdmin(req, res, next) {
 router.use(async (req, res, next) => {
   await db.read();
   db.data ||= { products: [] };
+
+  if (pgPool) {
+    try {
+      const remoteState = await pgPool.query('SELECT state FROM app_state WHERE id = 1 LIMIT 1');
+      const state = remoteState.rows.length ? remoteState.rows[0].state : null;
+      if (state && typeof state === 'object' && Array.isArray(state.products)) {
+        db.data.products = state.products;
+      }
+    } catch (error) {
+      console.error('Falha ao ler produtos no PostgreSQL:', error.message);
+    }
+  }
+
   next();
 });
 
@@ -42,6 +109,7 @@ router.post('/', requireAdmin, async (req, res) => {
   const newProd = { id: nanoid(), name, price: parseFloat(price), stock: parseInt(stock, 10) };
   db.data.products.push(newProd);
   await db.write();
+  await syncProductsToPg(db.data.products);
   res.status(201).json(newProd);
 });
 
@@ -54,6 +122,7 @@ router.put('/:id', requireAdmin, async (req, res) => {
   prod.price = parseFloat(price);
   prod.stock = parseInt(stock, 10);
   await db.write();
+  await syncProductsToPg(db.data.products);
   res.json(prod);
 });
 
@@ -63,6 +132,7 @@ router.delete('/:id', requireAdmin, async (req, res) => {
   if (index === -1) return res.status(404).json({ error: 'Product not found' });
   db.data.products.splice(index, 1);
   await db.write();
+  await syncProductsToPg(db.data.products);
   res.status(204).end();
 });
 

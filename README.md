@@ -82,6 +82,8 @@ http://localhost:3000
 - `BOOTSTRAP_ADMIN_CPF`: CPF do primeiro admin (somente quando banco estiver sem usuarios)
 - `BOOTSTRAP_ADMIN_SENHA`: senha do primeiro admin
 - `BOOTSTRAP_ADMIN_NOME`: nome do primeiro admin (opcional, padrao `ADMIN`)
+- `DATABASE_URL`: conexao PostgreSQL (Neon/Supabase/Render Postgres)
+- `PGSSLMODE`: opcional (`disable` para ambiente local sem SSL)
 
 Exemplo PowerShell:
 
@@ -157,6 +159,13 @@ Observacao importante:
 - Os dados ficam em `db.json`.
 - Em Render, o arquivo e persistido no disco (`/var/data/db.json`).
 - Sem persistencia, os dados se perdem em restart/redeploy.
+
+### Persistencia automatica em PostgreSQL (recomendado no plano free)
+
+Se `DATABASE_URL` estiver configurada, o backend sincroniza automaticamente o estado da aplicacao no PostgreSQL a cada gravacao.
+
+- Isso garante persistencia mesmo sem disco no Render free.
+- `db.json` continua como fallback/local.
 
 ## GitHub e arquivos sensiveis
 

@@ -4,6 +4,7 @@ const session = require('express-session');
 const { nanoid } = require('nanoid');
 const { Low } = require('lowdb');
 const { JSONFile } = require('lowdb/node');
+const { Pool } = require('pg');
 const path = require('path');
 const fs = require('fs');
 
@@ -11,6 +12,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const SESSION_SECRET = process.env.SESSION_SECRET || 's3cr3t-local';
 const isProduction = process.env.NODE_ENV === 'production';
+const DATABASE_URL = String(process.env.DATABASE_URL || '').trim();
 const BOOTSTRAP_ADMIN_CPF = normalizeCpf(process.env.BOOTSTRAP_ADMIN_CPF || '');
 const BOOTSTRAP_ADMIN_SENHA = String(process.env.BOOTSTRAP_ADMIN_SENHA || '');
 const BOOTSTRAP_ADMIN_NOME = String(process.env.BOOTSTRAP_ADMIN_NOME || 'ADMIN').trim() || 'ADMIN';
@@ -37,6 +39,81 @@ function ensureDbShape() {
   const vendaCounterAtual = Number(db.data.vendaCounter);
   db.data.vendaCounter = Number.isFinite(vendaCounterAtual) && vendaCounterAtual > 0 ? vendaCounterAtual : 1;
   db.data.lastSaleId = db.data.lastSaleId ?? null;
+}
+
+function getPgSslConfig() {
+  if (!DATABASE_URL) {
+    return false;
+  }
+  const forceDisableSsl = String(process.env.PGSSLMODE || '').toLowerCase() === 'disable';
+  const localConn = DATABASE_URL.includes('localhost') || DATABASE_URL.includes('127.0.0.1');
+  if (forceDisableSsl || localConn) {
+    return false;
+  }
+  return { rejectUnauthorized: false };
+}
+
+const pgPool = DATABASE_URL
+  ? new Pool({
+      connectionString: DATABASE_URL,
+      ssl: getPgSslConfig(),
+    })
+  : null;
+
+async function ensurePgTable() {
+  if (!pgPool) {
+    return;
+  }
+
+  await pgPool.query(`
+    CREATE TABLE IF NOT EXISTS app_state (
+      id INTEGER PRIMARY KEY,
+      state JSONB NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+}
+
+async function loadStateFromPg() {
+  if (!pgPool) {
+    return null;
+  }
+
+  const result = await pgPool.query('SELECT state FROM app_state WHERE id = 1 LIMIT 1');
+  if (!result.rows.length) {
+    return null;
+  }
+  return result.rows[0].state || null;
+}
+
+async function saveStateToPg(state) {
+  if (!pgPool) {
+    return;
+  }
+
+  await pgPool.query(
+    `
+      INSERT INTO app_state (id, state, updated_at)
+      VALUES (1, $1::jsonb, NOW())
+      ON CONFLICT (id)
+      DO UPDATE SET state = EXCLUDED.state, updated_at = NOW()
+    `,
+    [JSON.stringify(state || {})],
+  );
+}
+
+async function persistDb() {
+  ensureDbShape();
+  await db.write();
+  if (!pgPool) {
+    return;
+  }
+
+  try {
+    await saveStateToPg(db.data);
+  } catch (error) {
+    console.error('Falha ao sincronizar estado no PostgreSQL:', error.message);
+  }
 }
 
 function ensureBootstrapAdmin() {
@@ -76,12 +153,13 @@ const db = new Low(adapter, { products: [], users: [], vendas: [], associados: [
 
 async function initDB() {
   try {
+    await ensurePgTable();
     await ensureDbLoaded();
   } catch (error) {
     console.error('Falha ao inicializar banco de dados:', error.message);
     db.data = { products: [], users: [], vendas: [], associados: [], vendaCounter: 1, lastSaleId: null };
     ensureDbShape();
-    await db.write();
+    await persistDb();
   }
 }
 
@@ -178,21 +256,34 @@ async function requireAdmin(req, res, next) {
 }
 
 async function ensureDbLoaded() {
+  let shouldPersist = false;
+
   try {
     await db.read();
   } catch (error) {
     console.error('Falha ao ler db.json, recriando base:', error.message);
     db.data = { products: [], users: [], vendas: [], associados: [], vendaCounter: 1, lastSaleId: null };
     ensureDbShape();
-    await db.write();
-    return;
+    shouldPersist = true;
+  }
+
+  if (pgPool) {
+    try {
+      const pgState = await loadStateFromPg();
+      if (pgState && typeof pgState === 'object') {
+        db.data = pgState;
+        shouldPersist = true;
+      }
+    } catch (error) {
+      console.error('Falha ao carregar estado do PostgreSQL:', error.message);
+    }
   }
 
   const before = JSON.stringify(db.data || {});
   ensureDbShape();
   const bootstrapCriado = ensureBootstrapAdmin();
-  if (bootstrapCriado || before !== JSON.stringify(db.data || {})) {
-    await db.write();
+  if (bootstrapCriado || before !== JSON.stringify(db.data || {}) || shouldPersist) {
+    await persistDb();
   }
 }
 
@@ -230,7 +321,7 @@ app.post('/login', async (req, res) => {
         };
         db.data.users.push(user);
       }
-      await db.write();
+      await persistDb();
     }
 
     if (user && user.senha === senha && user.ativo !== false) {
@@ -312,7 +403,7 @@ app.put('/api/state', requireLogin, async (req, res) => {
   db.data.vendaCounter = vendaCounterFinal;
   db.data.lastSaleId = lastSaleId ?? null;
 
-  await db.write();
+  await persistDb();
   return res.json({ ok: true });
 });
 
@@ -350,7 +441,7 @@ app.post('/api/users', requireLogin, requireAdmin, async (req, res) => {
   };
 
   db.data.users.push(novoUsuario);
-  await db.write();
+  await persistDb();
 
   const { senha: _, ...safeUser } = novoUsuario;
   return res.status(201).json(safeUser);
@@ -400,7 +491,7 @@ app.put('/api/users/:id', requireLogin, requireAdmin, async (req, res) => {
     user.senha = senha;
   }
 
-  await db.write();
+  await persistDb();
   const { senha: _, ...safeUser } = user;
   return res.json(safeUser);
 });
@@ -427,7 +518,7 @@ app.delete('/api/users/:id', requireLogin, requireAdmin, async (req, res) => {
   if (index === -1) return res.status(404).json({ error: 'Usuário não encontrado' });
 
   db.data.users.splice(index, 1);
-  await db.write();
+  await persistDb();
   return res.status(204).end();
 });
 
