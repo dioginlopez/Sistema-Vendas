@@ -714,6 +714,50 @@ app.get('/api/product-image-options', requireLogin, async (req, res) => {
     });
   }
 
+  async function buscarPrimeiraImagemBing(termo) {
+    const consulta = String(termo || '').trim();
+    if (!consulta) return '';
+
+    const bingUrl = `https://www.bing.com/images/search?q=${encodeURIComponent(`${consulta} produto embalagem`)}`;
+    const resposta = await fetch(bingUrl, {
+      signal: AbortSignal.timeout(5000),
+      headers: {
+        'User-Agent': 'Mozilla/5.0 TocaApp/1.0',
+      },
+    });
+
+    if (!resposta.ok) return '';
+    const html = await resposta.text();
+
+    // First image card stores payload in m="{&quot;murl&quot;:...}".
+    const cardMatch = html.match(/class="iusc"[^>]*\sm="([^"]+)"/i);
+    if (cardMatch && cardMatch[1]) {
+      try {
+        const decoded = cardMatch[1]
+          .replace(/&quot;/g, '"')
+          .replace(/&amp;/g, '&');
+        const payload = JSON.parse(decoded);
+        const murl = String(payload && payload.murl ? payload.murl : '').trim();
+        if (murl) return murl;
+      } catch (error) {
+        // Try fallback regex below.
+      }
+    }
+
+    const murlMatch = html.match(/&quot;murl&quot;:&quot;([^&]+?)&quot;/i);
+    return murlMatch && murlMatch[1] ? String(murlMatch[1]) : '';
+  }
+
+  const termoBusca = nome || codigo;
+  if (termoBusca) {
+    try {
+      const primeiraBing = await buscarPrimeiraImagemBing(termoBusca);
+      adicionarOpcao(primeiraBing, 'bing-first');
+    } catch (error) {
+      // ignore
+    }
+  }
+
   if (codigo) {
     try {
       const resposta = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(codigo)}.json`, {
@@ -732,7 +776,6 @@ app.get('/api/product-image-options', requireLogin, async (req, res) => {
     }
   }
 
-  const termoBusca = nome || codigo;
   if (termoBusca) {
     try {
       const wikiUrl = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=${encodeURIComponent(`${termoBusca} produto embalagem`)}&gsrlimit=12&prop=imageinfo&iiprop=url|mime&format=json`;
