@@ -1243,7 +1243,8 @@
                 <!-- Aba de Estoque -->
                 <div id="estoque" class="tab-content ativo">
                     <div class="form-group">
-                        <input type="text" id="pesquisaProduto" placeholder="Pesquisar produto por nome ou código de barras..." onkeyup="filtrarProdutos()" style="margin-bottom: 20px;">
+                        <input type="text" id="pesquisaProduto" placeholder="Pesquisar produto por nome ou categoria..." onkeyup="filtrarProdutos()" style="margin-bottom: 10px;">
+                        <input type="text" id="pesquisaCodigoBarras" placeholder="Ou pesquisar somente por código de barras" inputmode="numeric" onkeyup="filtrarProdutos()" style="margin-bottom: 20px;">
                     </div>
                     <div class="form-group" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom: 12px;">
                         <input type="text" id="codigoBarrasVenda" class="form-control" placeholder="Leitura rápida por código de barras" style="flex:2;min-width:220px;" oninput="tentarAdicionarPorCodigoBarrasAutomatico()" onkeydown="if(event.key==='Enter'){event.preventDefault();adicionarPorCodigoBarras();}">
@@ -1848,6 +1849,10 @@
             return false;
         }
 
+        function redirecionarParaLogin() {
+            window.location.replace('login.html');
+        }
+
         function bloquearAcaoAdmin() {
             mostrarAlerta('Apenas administrador pode realizar esta ação', 'erro');
             return false;
@@ -1950,8 +1955,8 @@
                 }
 
                 if (!resposta.ok || !contentType.includes('application/json')) {
-                    falhaTemporariaSessao = true;
-                    return null;
+                    falhaTemporariaSessao = false;
+                    return false;
                 }
 
                 const dados = await resposta.json();
@@ -1960,8 +1965,8 @@
                 falhaTemporariaSessao = false;
                 return Boolean(usuarioLogado);
             } catch (erro) {
-                falhaTemporariaSessao = true;
-                return null;
+                falhaTemporariaSessao = false;
+                return false;
             } finally {
                 atualizarIndicadorPerfil();
             }
@@ -2000,13 +2005,12 @@
 
         // Inicializar
         document.addEventListener('DOMContentLoaded', async () => {
+            window.addEventListener('offline', redirecionarParaLogin);
+
             const sessaoValida = await carregarPerfilUsuarioLogado();
             if (sessaoValida === false) {
-                window.location.href = 'login.html';
+                redirecionarParaLogin();
                 return;
-            }
-            if (sessaoValida === null) {
-                mostrarAlerta('Falha temporária ao validar sessão. Mantendo a tela sem forçar novo login.', 'erro');
             }
 
             await carregarEstadoServidor();
@@ -2305,14 +2309,21 @@
         // Filtrar Produtos
         function filtrarProdutos() {
             const pesquisa = document.getElementById('pesquisaProduto').value.toLowerCase();
+            const pesquisaCodigoBruto = String(document.getElementById('pesquisaCodigoBarras')?.value || '').trim();
+            const pesquisaCodigo = limparCodigoBarras(pesquisaCodigoBruto);
             const lista = document.getElementById('produtosLista');
             lista.innerHTML = '';
 
-            const produtosFiltrados = produtos.filter(produto => 
-                produto.nome.toLowerCase().includes(pesquisa) ||
-                String(produto.codigoBarras || '').toLowerCase().includes(pesquisa) ||
-                String(produto.categoria || '').toLowerCase().includes(pesquisa)
-            );
+            const produtosFiltrados = produtos.filter((produto) => {
+                const codigoProduto = limparCodigoBarras(String(produto.codigoBarras || ''));
+                const correspondeTexto = !pesquisa
+                    || produto.nome.toLowerCase().includes(pesquisa)
+                    || String(produto.categoria || '').toLowerCase().includes(pesquisa)
+                    || String(produto.codigoBarras || '').toLowerCase().includes(pesquisa);
+                const correspondeCodigo = !pesquisaCodigo
+                    || codigoProduto.includes(pesquisaCodigo);
+                return correspondeTexto && correspondeCodigo;
+            });
 
             if (produtosFiltrados.length === 0) {
                 lista.innerHTML = '<div class="carrinho-vazio"><p>Nenhum produto encontrado</p></div>';
@@ -2352,6 +2363,8 @@
         // Atualizar Lista de Produtos
         function atualizarListaProdutos() {
             document.getElementById('pesquisaProduto').value = '';
+            const pesquisaCodigo = document.getElementById('pesquisaCodigoBarras');
+            if (pesquisaCodigo) pesquisaCodigo.value = '';
             filtrarProdutos();
             atualizarCategoriaProdutos();
         }

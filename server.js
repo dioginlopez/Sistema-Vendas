@@ -333,7 +333,7 @@ app.use(session({
     httpOnly: true,
     sameSite: 'lax',
     secure: isProduction ? 'auto' : false,
-    maxAge: 1000 * 60 * 60 * 12,
+    // Session cookie: exige novo login ao fechar o navegador.
   },
 }))
 

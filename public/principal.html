@@ -237,13 +237,29 @@
   </div>
 
   <script>
+    function redirecionarParaLogin() {
+      window.location.replace('/login.html');
+    }
+
     async function carregarPerfil() {
       try {
-        const resp = await fetch('/api/me');
+        const resp = await fetch('/api/me', {
+          headers: { 'Accept': 'application/json' },
+          credentials: 'same-origin',
+          cache: 'no-store'
+        });
+
         if (!resp.ok) {
-          document.getElementById('perfilAtual').textContent = 'Perfil: nao identificado';
+          redirecionarParaLogin();
           return;
         }
+
+        const contentType = String(resp.headers.get('content-type') || '').toLowerCase();
+        if (!contentType.includes('application/json')) {
+          redirecionarParaLogin();
+          return;
+        }
+
         const dados = await resp.json();
         const user = dados && dados.user ? dados.user : null;
         const nome = user && user.nome ? user.nome : 'Usuario';
@@ -254,7 +270,7 @@
           if (itemUsuarios) itemUsuarios.style.display = 'none';
         }
       } catch (error) {
-        document.getElementById('perfilAtual').textContent = 'Perfil: nao identificado';
+        redirecionarParaLogin();
       }
     }
 
@@ -273,6 +289,8 @@
         document.getElementById('buildInfo').textContent = 'Versao: indisponivel';
       }
     }
+
+    window.addEventListener('offline', redirecionarParaLogin);
 
     carregarPerfil();
     carregarVersao();
