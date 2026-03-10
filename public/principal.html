@@ -144,6 +144,11 @@
       font-size: 0.9rem;
       color: #4e6479;
     }
+    .build {
+      margin-top: 8px;
+      font-size: 0.82rem;
+      color: #5b7086;
+    }
     @media (max-width: 900px) {
       body { padding: 14px; }
       .sections { grid-template-columns: 1fr; }
@@ -251,6 +256,7 @@
     </div>
 
     <p class="foot">Dica: a qualquer momento voce pode voltar para esta tela acessando <strong>/</strong>.</p>
+    <p class="build" id="buildInfo">Versao: carregando...</p>
   </div>
 
   <script>
@@ -275,7 +281,24 @@
       }
     }
 
+    async function carregarVersao() {
+      try {
+        const resp = await fetch('/api/version', { cache: 'no-store' });
+        if (!resp.ok) {
+          document.getElementById('buildInfo').textContent = 'Versao: indisponivel';
+          return;
+        }
+        const dados = await resp.json();
+        const commit = String(dados.commit || '').slice(0, 8) || 'n/a';
+        const version = String(dados.version || 'n/a');
+        document.getElementById('buildInfo').textContent = `Versao: ${version} | Commit: ${commit}`;
+      } catch (error) {
+        document.getElementById('buildInfo').textContent = 'Versao: indisponivel';
+      }
+    }
+
     carregarPerfil();
+    carregarVersao();
   </script>
 </body>
 </html>

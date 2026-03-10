@@ -13,6 +13,9 @@ const PORT = process.env.PORT || 3000;
 const SESSION_SECRET = process.env.SESSION_SECRET || 's3cr3t-local';
 const isProduction = process.env.NODE_ENV === 'production';
 const DATABASE_URL = String(process.env.DATABASE_URL || '').trim();
+const APP_COMMIT = String(process.env.RENDER_GIT_COMMIT || process.env.COMMIT_SHA || '').trim() || 'local';
+const APP_VERSION = String(process.env.npm_package_version || '1.0.0').trim();
+const APP_BOOT_TIME = new Date().toISOString();
 const AUTO_BACKUP_INTERVAL_MINUTES = Math.max(0, Number(process.env.AUTO_BACKUP_INTERVAL_MINUTES || 1440));
 const AUTO_BACKUP_RETENTION = Math.max(1, Number(process.env.AUTO_BACKUP_RETENTION || 30));
 const AUTO_BACKUP_ON_START = String(process.env.AUTO_BACKUP_ON_START || 'true').toLowerCase() !== 'false';
@@ -336,7 +339,27 @@ app.use(session({
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
+
+app.use((req, res, next) => {
+  if (req.path.endsWith('.html') || req.path === '/') {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('Surrogate-Control', 'no-store');
+  }
+  next();
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
+
+app.get('/api/version', (req, res) => {
+  return res.json({
+    version: APP_VERSION,
+    commit: APP_COMMIT,
+    bootTime: APP_BOOT_TIME,
+    env: process.env.NODE_ENV || 'development',
+  });
+});
 
 // auth middleware
 async function requireLogin(req, res, next) {
