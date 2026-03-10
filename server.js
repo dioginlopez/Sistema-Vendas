@@ -558,10 +558,13 @@ app.get('/api/product-image', requireLogin, async (req, res) => {
 
   let imageUrl = '';
   let source = '';
+  const termoFallback = String(nome || codigo || 'produto').trim();
 
   if (codigo) {
     try {
-      const resposta = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(codigo)}.json`);
+      const resposta = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(codigo)}.json`, {
+        signal: AbortSignal.timeout(4500),
+      });
       if (resposta.ok) {
         const dados = await resposta.json();
         if (dados && dados.status === 1 && dados.product) {
@@ -579,9 +582,9 @@ app.get('/api/product-image', requireLogin, async (req, res) => {
     }
   }
 
-  if (!imageUrl && nome) {
-    const termo = encodeURIComponent(`${nome} produto embalagem`);
-    imageUrl = `https://loremflickr.com/640/480/${termo}`;
+  if (!imageUrl) {
+    // Always provide a deterministic internet fallback image.
+    imageUrl = `https://picsum.photos/seed/${encodeURIComponent(termoFallback)}/640/480`;
     source = 'fallback';
   }
 
