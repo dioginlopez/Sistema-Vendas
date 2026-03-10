@@ -350,7 +350,7 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 
 app.get('/api/version', (req, res) => {
   return res.json({
@@ -1150,6 +1150,18 @@ app.get('/api/download-image', requireLogin, async (req, res) => {
   } catch (error) {
     return res.status(500).json({ error: 'Falha ao processar download da imagem' });
   }
+});
+
+app.get('/principal.html', requireLogin, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'principal.html'));
+});
+
+app.get('/index.html', requireLogin, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.get('/gestao.html', requireLogin, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'gestao.html'));
 });
 
 // protect main page
