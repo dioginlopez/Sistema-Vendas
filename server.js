@@ -668,9 +668,10 @@ app.get('/api/product-image', requireLogin, async (req, res) => {
 app.get('/api/product-image-options', requireLogin, async (req, res) => {
   const nome = String(req.query.nome || '').trim();
   const codigo = normalizeCpf(String(req.query.codigo || '')).trim();
+  const marca = String(req.query.marca || '').trim();
 
-  if (!nome && !codigo) {
-    return res.status(400).json({ error: 'Informe nome ou codigo do produto' });
+  if (!nome && !codigo && !marca) {
+    return res.status(400).json({ error: 'Informe nome, marca ou codigo do produto' });
   }
 
   const opcoes = [];
@@ -714,11 +715,11 @@ app.get('/api/product-image-options', requireLogin, async (req, res) => {
     });
   }
 
-  async function buscarPrimeiraImagemBing(termo) {
-    const consulta = String(termo || '').trim();
-    if (!consulta) return '';
+  async function buscarMelhoresImagensBing(termo, termoMarca) {
+    const consultaBase = [String(termo || '').trim(), String(termoMarca || '').trim()].filter(Boolean).join(' ').trim();
+    if (!consultaBase) return [];
 
-    const bingUrl = `https://www.bing.com/images/search?q=${encodeURIComponent(`${consulta} produto embalagem`)}`;
+    const bingUrl = `https://www.bing.com/images/search?q=${encodeURIComponent(`${consultaBase} produto embalagem`)}`;
     const resposta = await fetch(bingUrl, {
       signal: AbortSignal.timeout(5000),
       headers: {
@@ -726,33 +727,64 @@ app.get('/api/product-image-options', requireLogin, async (req, res) => {
       },
     });
 
-    if (!resposta.ok) return '';
+    if (!resposta.ok) return [];
     const html = await resposta.text();
 
-    // First image card stores payload in m="{&quot;murl&quot;:...}".
-    const cardMatch = html.match(/class="iusc"[^>]*\sm="([^"]+)"/i);
-    if (cardMatch && cardMatch[1]) {
+    const termosPontuacao = [String(termo || '').trim(), String(termoMarca || '').trim()]
+      .join(' ')
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((t) => t.length >= 2);
+
+    const resultados = [];
+    const regexCards = /class="iusc"[^>]*\sm="([^"]+)"/gi;
+    let match;
+    while ((match = regexCards.exec(html)) !== null) {
+      const raw = match[1];
+      if (!raw) continue;
       try {
-        const decoded = cardMatch[1]
+        const decoded = raw
           .replace(/&quot;/g, '"')
           .replace(/&amp;/g, '&');
         const payload = JSON.parse(decoded);
         const murl = String(payload && payload.murl ? payload.murl : '').trim();
-        if (murl) return murl;
+        const titulo = String(payload && payload.t ? payload.t : '').toLowerCase();
+        const descricao = String(payload && payload.desc ? payload.desc : '').toLowerCase();
+        const texto = `${titulo} ${descricao}`;
+
+        if (!murl) continue;
+
+        let score = 0;
+        termosPontuacao.forEach((token) => {
+          if (texto.includes(token)) score += 3;
+          if (murl.toLowerCase().includes(token)) score += 1;
+        });
+
+        if (titulo.includes(String(termo || '').trim().toLowerCase())) score += 4;
+        if (termoMarca && titulo.includes(String(termoMarca).toLowerCase())) score += 5;
+
+        resultados.push({ url: murl, score });
       } catch (error) {
-        // Try fallback regex below.
+        // ignore malformed card
       }
     }
 
-    const murlMatch = html.match(/&quot;murl&quot;:&quot;([^&]+?)&quot;/i);
-    return murlMatch && murlMatch[1] ? String(murlMatch[1]) : '';
+    if (!resultados.length) {
+      const murlMatch = html.match(/&quot;murl&quot;:&quot;([^&]+?)&quot;/i);
+      return murlMatch && murlMatch[1] ? [String(murlMatch[1])] : [];
+    }
+
+    return resultados
+      .sort((a, b) => b.score - a.score)
+      .map((item) => item.url)
+      .slice(0, 5);
   }
 
-  const termoBusca = nome || codigo;
-  if (termoBusca) {
+  const termoBusca = nome || codigo || marca;
+  if (termoBusca || marca) {
     try {
-      const primeiraBing = await buscarPrimeiraImagemBing(termoBusca);
-      adicionarOpcao(primeiraBing, 'bing-first');
+      const melhoresBing = await buscarMelhoresImagensBing(termoBusca, marca);
+      melhoresBing.forEach((url, idx) => adicionarOpcao(url, idx === 0 ? 'bing-first' : 'bing-related'));
     } catch (error) {
       // ignore
     }
@@ -778,7 +810,7 @@ app.get('/api/product-image-options', requireLogin, async (req, res) => {
 
   if (termoBusca) {
     try {
-      const wikiUrl = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=${encodeURIComponent(`${termoBusca} produto embalagem`)}&gsrlimit=12&prop=imageinfo&iiprop=url|mime&format=json`;
+      const wikiUrl = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=${encodeURIComponent(`${termoBusca} ${marca} produto embalagem`)}&gsrlimit=12&prop=imageinfo&iiprop=url|mime&format=json`;
       const resposta = await fetch(wikiUrl, { signal: AbortSignal.timeout(4500) });
       if (resposta.ok) {
         const dados = await resposta.json();
@@ -796,9 +828,9 @@ app.get('/api/product-image-options', requireLogin, async (req, res) => {
     }
   }
 
-  adicionarOpcao(`https://loremflickr.com/640/480/${encodeURIComponent(`${termoBusca || 'produto'},produto,embalagem`)}`, 'loremflickr');
-  adicionarOpcao(`https://picsum.photos/seed/${encodeURIComponent(termoBusca || 'produto')}/640/480`, 'picsum');
-  adicionarOpcao(gerarSvgProdutoFallback(termoBusca || 'produto'), 'local-fallback');
+  adicionarOpcao(`https://loremflickr.com/640/480/${encodeURIComponent(`${termoBusca || 'produto'} ${marca},produto,embalagem`)}`, 'loremflickr');
+  adicionarOpcao(`https://picsum.photos/seed/${encodeURIComponent(`${termoBusca || 'produto'}-${marca || 'marca'}`)}/640/480`, 'picsum');
+  adicionarOpcao(gerarSvgProdutoFallback(`${termoBusca || 'produto'} ${marca || ''}`), 'local-fallback');
 
   return res.json({ options: opcoes.slice(0, 10) });
 });

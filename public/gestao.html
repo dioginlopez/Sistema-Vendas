@@ -1532,6 +1532,10 @@
                 <input type="text" id="produtoCodigoBarras" placeholder="Ex: 7891234567890" inputmode="numeric" maxlength="20">
             </div>
             <div class="form-group">
+                <label for="produtoMarca">Marca (opcional, melhora a precisao):</label>
+                <input type="text" id="produtoMarca" placeholder="Ex: Coca-Cola, Nestle, Ambev">
+            </div>
+            <div class="form-group">
                 <label for="produtoImagemUrl">Imagem do Produto (busca automatica):</label>
                 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
                     <input type="text" id="produtoImagemUrl" class="form-control" placeholder="Cole a URL ou escolha uma imagem abaixo" style="flex:1;min-width:220px;">
@@ -1822,12 +1826,14 @@
             }
         }
 
-        async function buscarOpcoesImagemProduto(nomeProduto, codigoBarras) {
+        async function buscarOpcoesImagemProduto(nomeProduto, codigoBarras, marcaProduto) {
             const params = new URLSearchParams();
             const nome = String(nomeProduto || '').trim();
             const codigo = limparCodigoBarras(codigoBarras);
+            const marca = String(marcaProduto || '').trim();
             if (nome) params.set('nome', nome);
             if (codigo) params.set('codigo', codigo);
+            if (marca) params.set('marca', marca);
             if (!params.toString()) return [];
 
             try {
@@ -1876,14 +1882,15 @@
         async function buscarImagensInternetProduto() {
             const nome = String(document.getElementById('produtoNome')?.value || '').trim();
             const codigoBarras = String(document.getElementById('produtoCodigoBarras')?.value || '').trim();
-            const termo = codigoBarras || nome;
+            const marca = String(document.getElementById('produtoMarca')?.value || '').trim();
+            const termo = codigoBarras || nome || marca;
 
             if (!termo) {
                 mostrarAlerta('Digite nome ou codigo de barras para buscar imagem', 'erro');
                 return;
             }
 
-            const opcoes = await buscarOpcoesImagemProduto(nome, codigoBarras);
+            const opcoes = await buscarOpcoesImagemProduto(nome, codigoBarras, marca);
             if (!opcoes.length) {
                 renderizarOpcoesImagemProduto([]);
                 mostrarAlerta('Nao foi possivel encontrar imagem relacionada', 'erro');
@@ -3104,6 +3111,7 @@
             document.getElementById('produtoPreco').value = '';
             document.getElementById('produtoEstoque').value = '';
             document.getElementById('produtoCodigoBarras').value = '';
+            document.getElementById('produtoMarca').value = '';
             atualizarPreviewImagemProduto('', 'Use "Buscar na Internet" para escolher uma imagem');
             const opcoesImagem = document.getElementById('produtoImagemOpcoes');
             if (opcoesImagem) opcoesImagem.innerHTML = '';
@@ -3127,6 +3135,7 @@
             document.getElementById('produtoPreco').value = produto.preco;
             document.getElementById('produtoEstoque').value = produto.estoque;
             document.getElementById('produtoCodigoBarras').value = produto.codigoBarras || '';
+            document.getElementById('produtoMarca').value = produto.marca || '';
             atualizarPreviewImagemProduto(produto.imagemUrl || '', produto.imagemUrl ? 'Imagem atual do produto' : 'Use "Buscar na Internet" para escolher uma imagem');
             const opcoesImagem = document.getElementById('produtoImagemOpcoes');
             if (opcoesImagem) opcoesImagem.innerHTML = '';
@@ -3144,6 +3153,7 @@
             const preco = parseFloat(document.getElementById('produtoPreco').value);
             const estoque = parseInt(document.getElementById('produtoEstoque').value);
             const codigoBarras = document.getElementById('produtoCodigoBarras').value.trim();
+            const marca = String(document.getElementById('produtoMarca').value || '').trim();
             let imagemUrl = document.getElementById('produtoImagemUrl').value.trim();
             const categoria = document.getElementById('produtoCategoria').value;
 
@@ -3167,6 +3177,7 @@
                 produtoEmEdicao.preco = preco;
                 produtoEmEdicao.estoque = estoque;
                 produtoEmEdicao.codigoBarras = codigoBarras || undefined;
+                produtoEmEdicao.marca = marca || undefined;
                 produtoEmEdicao.imagemUrl = imagemUrl || undefined;
                 produtoEmEdicao.categoria = categoria;
                 mostrarAlerta('Produto atualizado com sucesso', 'sucesso');
@@ -3177,6 +3188,7 @@
                     preco: preco,
                     estoque: estoque,
                     codigoBarras: codigoBarras || undefined,
+                    marca: marca || undefined,
                     imagemUrl: imagemUrl || undefined,
                     categoria: categoria
                 };
