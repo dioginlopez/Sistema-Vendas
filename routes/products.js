@@ -8,8 +8,28 @@ const fs = require('fs');
 const { nanoid } = require('nanoid');
 
 const DATABASE_URL = String(process.env.DATABASE_URL || '').trim();
-const file = String(process.env.DB_FILE || '').trim() || path.join(__dirname, '../db.json');
-fs.mkdirSync(path.dirname(file), { recursive: true });
+function resolveWritableDbFile() {
+  const requestedFile = String(process.env.DB_FILE || '').trim();
+  const candidates = [
+    requestedFile,
+    path.join(__dirname, '../db.json'),
+    path.join(process.cwd(), 'db.json'),
+    '/tmp/toca-db.json',
+  ].filter(Boolean);
+
+  for (const candidate of candidates) {
+    try {
+      fs.mkdirSync(path.dirname(candidate), { recursive: true });
+      return candidate;
+    } catch (error) {
+      // Try next fallback when current path is not writable.
+    }
+  }
+
+  throw new Error('Nenhum caminho gravavel encontrado para o arquivo do banco');
+}
+
+const file = resolveWritableDbFile();
 const adapter = new JSONFile(file);
 const db = new Low(adapter, { products: [] });
 
