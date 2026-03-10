@@ -2042,6 +2042,7 @@
             atualizarListaAssociados();
             mostrarVendasParaEdicao();
             aplicarPermissoesInterface();
+            abrirAbaVendasPorQuery();
             agendarSalvarServidor();
             // exibir última venda salva
             const lastId = localStorage.getItem('lastSaleId');
@@ -2246,6 +2247,16 @@
 
         function abrirAtalhoGestao(aba) {
             trocarAbaGestao(aba);
+        }
+
+        function abrirAbaVendasPorQuery() {
+            const params = new URLSearchParams(window.location.search || '');
+            const aba = String(params.get('aba') || '').trim();
+            const abasValidas = ['estoque', 'categoriaProdutos', 'editarVenda', 'relatorioDiario'];
+            if (!abasValidas.includes(aba)) return;
+
+            const btn = document.querySelector(`.panel:first-of-type .tabs .tab-btn[data-aba="${aba}"]`);
+            trocarAba(aba, btn || null);
         }
 
         function trocarAbaGestao(aba) {

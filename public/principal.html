@@ -99,25 +99,45 @@
       align-items: center;
       gap: 8px;
     }
-    .list {
+    .tab-list {
       display: grid;
-      gap: 8px;
+      gap: 10px;
     }
-    .item {
+    .tab-row {
       background: #f6f9fd;
       border: 1px solid #e5edf7;
-      border-radius: 10px;
-      padding: 10px;
+      border-radius: 11px;
+      padding: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
     }
-    .item strong {
+    .tab-info strong {
       display: block;
       color: #1e3e5b;
       margin-bottom: 4px;
     }
-    .item span {
+    .tab-info span {
       font-size: 0.93rem;
       color: #385872;
       line-height: 1.35;
+    }
+    .tab-go {
+      white-space: nowrap;
+      background: #ffffff;
+      color: #1b4769;
+      border: 1px solid #cad8e8;
+      border-radius: 8px;
+      text-decoration: none;
+      padding: 8px 12px;
+      font-weight: 700;
+      font-size: 0.88rem;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .tab-go:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 14px rgba(30, 64, 95, 0.12);
     }
     .foot {
       margin-top: 14px;
@@ -140,8 +160,8 @@
     </section>
 
     <div class="actions">
-      <a class="btn btn-main" href="/index.html"><i class="bi bi-play-fill" aria-hidden="true"></i> Entrar no Sistema</a>
-      <a class="btn btn-soft" href="/index.html"><i class="bi bi-house-door" aria-hidden="true"></i> Abrir Tela de Vendas</a>
+      <a class="btn btn-main" href="/index.html?aba=estoque"><i class="bi bi-play-fill" aria-hidden="true"></i> Entrar no Sistema</a>
+      <a class="btn btn-soft" href="/index.html?aba=estoque"><i class="bi bi-house-door" aria-hidden="true"></i> Abrir Tela de Vendas</a>
       <a class="btn btn-soft" href="/gestao.html#relatorio"><i class="bi bi-graph-up" aria-hidden="true"></i> Ir para Relatorios</a>
       <a class="btn btn-soft" href="/gestao.html#fiados"><i class="bi bi-cash-coin" aria-hidden="true"></i> Ir para Recebimentos</a>
     </div>
@@ -149,23 +169,83 @@
     <div class="sections">
       <article class="card">
         <h2><i class="bi bi-cart-check" aria-hidden="true"></i> Abas de Vendas</h2>
-        <div class="list">
-          <div class="item"><strong>Produtos</strong><span>Pesquisa por nome/codigo, adiciona itens ao carrinho e leitura rapida por codigo de barras.</span></div>
-          <div class="item"><strong>Categoria dos Produtos</strong><span>Consulta por categoria, visualiza tabela de precos e gera documento para impressao.</span></div>
-          <div class="item"><strong>Editar Venda</strong><span>Localiza vendas ja registradas para revisao e ajustes quando necessario.</span></div>
-          <div class="item"><strong>Relatorio Diario</strong><span>Resumo do dia com foco nas vendas realizadas no periodo.</span></div>
+        <div class="tab-list">
+          <div class="tab-row">
+            <div class="tab-info">
+              <strong>Produtos</strong>
+              <span>Pesquisa por nome/codigo, adiciona itens ao carrinho e leitura rapida por codigo de barras.</span>
+            </div>
+            <a class="tab-go" href="/index.html?aba=estoque">Abrir</a>
+          </div>
+          <div class="tab-row">
+            <div class="tab-info">
+              <strong>Categoria dos Produtos</strong>
+              <span>Consulta por categoria, visualiza tabela de precos e gera documento para impressao.</span>
+            </div>
+            <a class="tab-go" href="/index.html?aba=categoriaProdutos">Abrir</a>
+          </div>
+          <div class="tab-row">
+            <div class="tab-info">
+              <strong>Editar Venda</strong>
+              <span>Localiza vendas ja registradas para revisao e ajustes quando necessario.</span>
+            </div>
+            <a class="tab-go" href="/index.html?aba=editarVenda">Abrir</a>
+          </div>
+          <div class="tab-row">
+            <div class="tab-info">
+              <strong>Relatorio Diario</strong>
+              <span>Resumo do dia com foco nas vendas realizadas no periodo.</span>
+            </div>
+            <a class="tab-go" href="/index.html?aba=relatorioDiario">Abrir</a>
+          </div>
         </div>
       </article>
 
       <article class="card">
         <h2><i class="bi bi-box-seam" aria-hidden="true"></i> Abas de Gestao</h2>
-        <div class="list">
-          <div class="item"><strong>Estoque</strong><span>Cadastro e atualizacao de produtos, estoque, preco e imagens.</span></div>
-          <div class="item"><strong>Relatorio de Vendas</strong><span>Filtros por cliente, status e data, com exportacao de documento.</span></div>
-          <div class="item"><strong>Recebimentos</strong><span>Controle de fiados e pagamentos pendentes dos clientes.</span></div>
-          <div class="item"><strong>Associado</strong><span>Cadastro e manutencao de associados para uso em vendas fiadas.</span></div>
-          <div class="item"><strong>Entrada de Dinheiro</strong><span>Registro de entradas extras e consolidacao de caixa.</span></div>
-          <div class="item"><strong>Usuarios (admin)</strong><span>Gestao de usuarios do sistema e permissoes de acesso.</span></div>
+        <div class="tab-list">
+          <div class="tab-row">
+            <div class="tab-info">
+              <strong>Estoque</strong>
+              <span>Cadastro e atualizacao de produtos, estoque, preco e imagens.</span>
+            </div>
+            <a class="tab-go" href="/gestao.html#visao">Abrir</a>
+          </div>
+          <div class="tab-row">
+            <div class="tab-info">
+              <strong>Relatorio de Vendas</strong>
+              <span>Filtros por cliente, status e data, com exportacao de documento.</span>
+            </div>
+            <a class="tab-go" href="/gestao.html#relatorio">Abrir</a>
+          </div>
+          <div class="tab-row">
+            <div class="tab-info">
+              <strong>Recebimentos</strong>
+              <span>Controle de fiados e pagamentos pendentes dos clientes.</span>
+            </div>
+            <a class="tab-go" href="/gestao.html#fiados">Abrir</a>
+          </div>
+          <div class="tab-row">
+            <div class="tab-info">
+              <strong>Associado</strong>
+              <span>Cadastro e manutencao de associados para uso em vendas fiadas.</span>
+            </div>
+            <a class="tab-go" href="/gestao.html#associado">Abrir</a>
+          </div>
+          <div class="tab-row">
+            <div class="tab-info">
+              <strong>Entrada de Dinheiro</strong>
+              <span>Registro de entradas extras e consolidacao de caixa.</span>
+            </div>
+            <a class="tab-go" href="/gestao.html#entrada">Abrir</a>
+          </div>
+          <div class="tab-row" id="itemUsuariosAdmin">
+            <div class="tab-info">
+              <strong>Usuarios (admin)</strong>
+              <span>Gestao de usuarios do sistema e permissoes de acesso.</span>
+            </div>
+            <a class="tab-go" href="/gestao.html#usuarios">Abrir</a>
+          </div>
         </div>
       </article>
     </div>
@@ -186,6 +266,10 @@
         const nome = user && user.nome ? user.nome : 'Usuario';
         const perfil = user && user.perfil ? user.perfil : 'operador';
         document.getElementById('perfilAtual').textContent = `Perfil: ${nome} (${perfil})`;
+        if (String(perfil).toLowerCase() !== 'admin') {
+          const itemUsuarios = document.getElementById('itemUsuariosAdmin');
+          if (itemUsuarios) itemUsuarios.style.display = 'none';
+        }
       } catch (error) {
         document.getElementById('perfilAtual').textContent = 'Perfil: nao identificado';
       }
