@@ -592,6 +592,48 @@ app.get('/api/product-image', requireLogin, async (req, res) => {
   return res.json({ imageUrl, source });
 });
 
+app.get('/api/download-image', requireLogin, async (req, res) => {
+  const urlParam = String(req.query.url || '').trim();
+  if (!urlParam) {
+    return res.status(400).json({ error: 'URL da imagem nao informada' });
+  }
+
+  let imageUrl;
+  try {
+    imageUrl = new URL(urlParam);
+  } catch (error) {
+    return res.status(400).json({ error: 'URL da imagem invalida' });
+  }
+
+  if (!['http:', 'https:'].includes(imageUrl.protocol)) {
+    return res.status(400).json({ error: 'Protocolo de URL nao permitido' });
+  }
+
+  try {
+    const resposta = await fetch(imageUrl.toString());
+    if (!resposta.ok) {
+      return res.status(404).json({ error: 'Nao foi possivel baixar a imagem' });
+    }
+
+    const contentType = String(resposta.headers.get('content-type') || '').toLowerCase();
+    if (!contentType.startsWith('image/')) {
+      return res.status(400).json({ error: 'URL nao retornou uma imagem valida' });
+    }
+
+    const ext = contentType.includes('png') ? 'png'
+      : contentType.includes('webp') ? 'webp'
+      : contentType.includes('gif') ? 'gif'
+      : 'jpg';
+
+    const arquivo = Buffer.from(await resposta.arrayBuffer());
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Disposition', `attachment; filename="produto.${ext}"`);
+    return res.send(arquivo);
+  } catch (error) {
+    return res.status(500).json({ error: 'Falha ao processar download da imagem' });
+  }
+});
+
 // protect main page
 app.get('/', requireLogin, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));

@@ -519,10 +519,12 @@
 
         .modal-content {
             background: white;
-            padding: 40px;
+            padding: 24px;
             border-radius: 15px;
-            max-width: 450px;
+            max-width: 420px;
             width: 90%;
+            max-height: 84vh;
+            overflow-y: auto;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
             border-top: 6px solid #f39c12;
             animation: slideIn 0.3s ease;
@@ -632,6 +634,10 @@
             display: flex;
             gap: 12px;
             margin-top: 30px;
+            position: sticky;
+            bottom: 0;
+            background: #fff;
+            padding-top: 8px;
         }
 
         .modal-buttons button {
@@ -827,7 +833,8 @@
             }
 
             .modal-content {
-                padding: 25px;
+                padding: 18px;
+                max-height: 88vh;
             }
 
             .content {
@@ -1436,8 +1443,12 @@
             <div class="form-group">
                 <label for="produtoImagemUrl">Imagem do Produto (automática):</label>
                 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-                    <input type="text" id="produtoImagemUrl" class="form-control" placeholder="Gerada automaticamente por nome/código" readonly style="flex:1;min-width:220px;">
+                    <input type="text" id="produtoImagemUrl" class="form-control" placeholder="Cole a URL da imagem ou gere automaticamente" style="flex:1;min-width:220px;">
                     <button type="button" class="btn btn-secondary" onclick="gerarImagemProdutoAutomatica(true)" style="width:auto;margin-top:0;padding:10px 14px;">Gerar Imagem</button>
+                    <button type="button" class="btn btn-secondary" onclick="baixarImagemProdutoAtual()" style="width:auto;margin-top:0;padding:10px 14px;">Baixar Foto</button>
+                </div>
+                <div style="margin-top:8px;">
+                    <input type="file" id="produtoImagemArquivo" accept="image/*" onchange="carregarImagemManualProduto(event)">
                 </div>
                 <small id="produtoImagemStatus" style="display:block;margin-top:6px;color:#64748b;"></small>
                 <img id="produtoImagemPreview" alt="Preview da imagem do produto" style="display:none;width:100%;max-height:180px;object-fit:cover;border-radius:10px;border:1px solid #dbe4ef;margin-top:8px;">
@@ -1647,6 +1658,63 @@
             preview.src = url;
             preview.style.display = 'block';
             statusEl.textContent = status || 'Imagem vinculada ao produto';
+        }
+
+        function carregarImagemManualProduto(event) {
+            const arquivo = event && event.target && event.target.files ? event.target.files[0] : null;
+            if (!arquivo) return;
+
+            if (!String(arquivo.type || '').startsWith('image/')) {
+                mostrarAlerta('Selecione um arquivo de imagem valido', 'erro');
+                return;
+            }
+
+            const leitor = new FileReader();
+            leitor.onload = () => {
+                const base64 = String(leitor.result || '');
+                atualizarPreviewImagemProduto(base64, 'Imagem carregada manualmente');
+            };
+            leitor.onerror = () => {
+                mostrarAlerta('Nao foi possivel carregar a foto selecionada', 'erro');
+            };
+            leitor.readAsDataURL(arquivo);
+        }
+
+        async function baixarImagemProdutoAtual() {
+            const url = String(document.getElementById('produtoImagemUrl')?.value || '').trim();
+            if (!url) {
+                mostrarAlerta('Nao ha imagem para baixar', 'erro');
+                return;
+            }
+
+            try {
+                if (url.startsWith('data:image/')) {
+                    const linkLocal = document.createElement('a');
+                    linkLocal.href = url;
+                    linkLocal.download = 'produto.jpg';
+                    document.body.appendChild(linkLocal);
+                    linkLocal.click();
+                    document.body.removeChild(linkLocal);
+                    return;
+                }
+
+                const resposta = await fetch(`/api/download-image?url=${encodeURIComponent(url)}`);
+                if (!resposta.ok) {
+                    throw new Error('Falha no download da imagem');
+                }
+
+                const blob = await resposta.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = blobUrl;
+                link.download = 'produto.jpg';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(blobUrl);
+            } catch (erro) {
+                mostrarAlerta('Nao foi possivel baixar a imagem', 'erro');
+            }
         }
 
         async function buscarImagemProdutoServidor(nomeProduto, codigoBarras) {
@@ -1935,11 +2003,18 @@
 
             const campoNomeProduto = document.getElementById('produtoNome');
             const campoCodigoProduto = document.getElementById('produtoCodigoBarras');
+            const campoUrlImagemProduto = document.getElementById('produtoImagemUrl');
             if (campoNomeProduto) {
                 campoNomeProduto.addEventListener('input', agendarGeracaoImagemProduto);
             }
             if (campoCodigoProduto) {
                 campoCodigoProduto.addEventListener('input', agendarGeracaoImagemProduto);
+            }
+            if (campoUrlImagemProduto) {
+                campoUrlImagemProduto.addEventListener('input', () => {
+                    const url = campoUrlImagemProduto.value.trim();
+                    atualizarPreviewImagemProduto(url, url ? 'Imagem definida manualmente' : '');
+                });
             }
         });
 
@@ -2797,6 +2872,7 @@
             document.getElementById('produtoEstoque').value = '';
             document.getElementById('produtoCodigoBarras').value = '';
             atualizarPreviewImagemProduto('', 'A imagem será gerada automaticamente');
+            document.getElementById('produtoImagemArquivo').value = '';
             document.getElementById('produtoCategoria').value = '';
             document.getElementById('modalProduto').classList.add('ativo');
         }
@@ -2817,6 +2893,7 @@
             document.getElementById('produtoEstoque').value = produto.estoque;
             document.getElementById('produtoCodigoBarras').value = produto.codigoBarras || '';
             atualizarPreviewImagemProduto(produto.imagemUrl || '', produto.imagemUrl ? 'Imagem atual do produto' : 'A imagem será gerada automaticamente');
+            document.getElementById('produtoImagemArquivo').value = '';
             document.getElementById('produtoCategoria').value = categoriasProdutoPermitidas.includes(produto.categoria)
                 ? produto.categoria
                 : 'Variados';
