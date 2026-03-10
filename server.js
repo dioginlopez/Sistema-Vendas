@@ -535,6 +535,12 @@ app.post('/logout', (req, res) => {
   });
 });
 
+app.post('/logout-beacon', (req, res) => {
+  req.session.destroy(() => {
+    res.status(204).end();
+  });
+});
+
 app.get('/api/me', requireLogin, (req, res) => {
   res.json({ user: req.session.user || null });
 });
@@ -997,16 +1003,6 @@ app.get('/api/product-image-options', requireLogin, async (req, res) => {
       .slice(0, 5);
   }
 
-  const termoBusca = nome || codigo || marca;
-  if (termoBusca || marca) {
-    try {
-      const melhoresBing = await buscarMelhoresImagensBing(termoBusca, marca);
-      melhoresBing.forEach((url, idx) => adicionarOpcao(url, idx === 0 ? 'bing-first' : 'bing-related'));
-    } catch (error) {
-      // ignore
-    }
-  }
-
   if (codigo) {
     try {
       const resposta = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(codigo)}.json`, {
@@ -1020,6 +1016,16 @@ app.get('/api/product-image-options', requireLogin, async (req, res) => {
           adicionarOpcao(p.image_url, 'openfoodfacts');
         }
       }
+    } catch (error) {
+      // ignore
+    }
+  }
+
+  const termoBusca = codigo || nome || marca;
+  if (termoBusca || marca) {
+    try {
+      const melhoresBing = await buscarMelhoresImagensBing(termoBusca, marca);
+      melhoresBing.forEach((url, idx) => adicionarOpcao(url, idx === 0 ? 'bing-first' : 'bing-related'));
     } catch (error) {
       // ignore
     }

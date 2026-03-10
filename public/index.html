@@ -1853,6 +1853,21 @@
             window.location.replace('login.html');
         }
 
+        function navegacaoEhRecarregamento() {
+            const nav = performance.getEntriesByType('navigation');
+            return Array.isArray(nav) && nav[0] && nav[0].type === 'reload';
+        }
+
+        function encerrarSessaoAoSairPagina() {
+            try {
+                if (navigator.sendBeacon) {
+                    navigator.sendBeacon('/logout-beacon');
+                }
+            } catch (erro) {
+                // noop
+            }
+        }
+
         function bloquearAcaoAdmin() {
             mostrarAlerta('Apenas administrador pode realizar esta ação', 'erro');
             return false;
@@ -2006,6 +2021,13 @@
         // Inicializar
         document.addEventListener('DOMContentLoaded', async () => {
             window.addEventListener('offline', redirecionarParaLogin);
+            window.addEventListener('pagehide', encerrarSessaoAoSairPagina);
+
+            if (navegacaoEhRecarregamento()) {
+                encerrarSessaoAoSairPagina();
+                redirecionarParaLogin();
+                return;
+            }
 
             const sessaoValida = await carregarPerfilUsuarioLogado();
             if (sessaoValida === false) {
