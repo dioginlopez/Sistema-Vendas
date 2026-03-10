@@ -560,6 +560,29 @@ app.get('/api/product-image', requireLogin, async (req, res) => {
   let source = '';
   const termoFallback = String(nome || codigo || 'produto').trim();
 
+  async function buscarImagemWikimedia(termo) {
+    const consulta = String(termo || '').trim();
+    if (!consulta) return '';
+
+    const url = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=${encodeURIComponent(`${consulta} produto embalagem`)}&gsrlimit=5&prop=imageinfo&iiprop=url|mime&format=json`;
+    const resposta = await fetch(url, { signal: AbortSignal.timeout(4500) });
+    if (!resposta.ok) return '';
+
+    const dados = await resposta.json();
+    const pages = dados && dados.query && dados.query.pages ? Object.values(dados.query.pages) : [];
+    if (!pages.length) return '';
+
+    for (const page of pages) {
+      const info = Array.isArray(page.imageinfo) ? page.imageinfo[0] : null;
+      const mime = String(info && info.mime ? info.mime : '').toLowerCase();
+      if (info && info.url && mime.startsWith('image/')) {
+        return String(info.url);
+      }
+    }
+
+    return '';
+  }
+
   if (codigo) {
     try {
       const resposta = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(codigo)}.json`, {
@@ -582,9 +605,27 @@ app.get('/api/product-image', requireLogin, async (req, res) => {
     }
   }
 
+  if (!imageUrl && nome) {
+    try {
+      imageUrl = await buscarImagemWikimedia(nome);
+      source = imageUrl ? 'wikimedia-name' : source;
+    } catch (error) {
+      // Silent fallback.
+    }
+  }
+
+  if (!imageUrl && codigo) {
+    try {
+      imageUrl = await buscarImagemWikimedia(codigo);
+      source = imageUrl ? 'wikimedia-barcode' : source;
+    } catch (error) {
+      // Silent fallback.
+    }
+  }
+
   if (!imageUrl) {
-    // Always provide a deterministic internet fallback image.
-    imageUrl = `https://picsum.photos/seed/${encodeURIComponent(termoFallback)}/640/480`;
+    // Deterministic search fallback by product term.
+    imageUrl = `https://loremflickr.com/640/480/${encodeURIComponent(`${termoFallback},produto,embalagem`)}`;
     source = 'fallback';
   }
 
