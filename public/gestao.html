@@ -1532,15 +1532,16 @@
                 <input type="text" id="produtoCodigoBarras" placeholder="Ex: 7891234567890" inputmode="numeric" maxlength="20">
             </div>
             <div class="form-group">
-                <label for="produtoImagemUrl">Imagem do Produto (automatica):</label>
+                <label for="produtoImagemUrl">Imagem do Produto (escolher na internet):</label>
                 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-                    <input type="text" id="produtoImagemUrl" class="form-control" placeholder="Cole a URL da imagem ou gere automaticamente" style="flex:1;min-width:220px;">
-                    <button type="button" class="btn btn-secondary" onclick="gerarImagemProdutoAutomatica(true)" style="width:auto;margin-top:0;padding:10px 14px;">Gerar Imagem</button>
+                    <input type="text" id="produtoImagemUrl" class="form-control" placeholder="Cole a URL ou escolha uma imagem abaixo" style="flex:1;min-width:220px;">
+                    <button type="button" class="btn btn-secondary" onclick="buscarImagensInternetProduto()" style="width:auto;margin-top:0;padding:10px 14px;">Buscar na Internet</button>
                     <button type="button" class="btn btn-secondary" onclick="baixarImagemProdutoAtual()" style="width:auto;margin-top:0;padding:10px 14px;">Baixar Foto</button>
                 </div>
                 <div style="margin-top:8px;">
                     <input type="file" id="produtoImagemArquivo" accept="image/*" onchange="carregarImagemManualProduto(event)">
                 </div>
+                <div id="produtoImagemOpcoes" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-top:10px;"></div>
                 <small id="produtoImagemStatus" style="display:block;margin-top:6px;color:#64748b;"></small>
                 <img id="produtoImagemPreview" alt="Preview da imagem do produto" style="display:none;width:100%;max-height:180px;object-fit:cover;border-radius:10px;border:1px solid #dbe4ef;margin-top:8px;">
             </div>
@@ -1732,7 +1733,6 @@
         let salvarServidorTimeout = null;
         let ultimoEstadoServidorSerializado = '';
         let intervaloSalvarServidor = null;
-        let imagemProdutoTimeout = null;
         const categoriasProdutoPermitidas = [
             'Bebidas Alcoolicas',
             'Bebida',
@@ -1822,58 +1822,76 @@
             }
         }
 
-        async function buscarImagemProdutoServidor(nomeProduto, codigoBarras) {
+        async function buscarOpcoesImagemProduto(nomeProduto, codigoBarras) {
             const params = new URLSearchParams();
             const nome = String(nomeProduto || '').trim();
             const codigo = limparCodigoBarras(codigoBarras);
             if (nome) params.set('nome', nome);
             if (codigo) params.set('codigo', codigo);
-            if (!params.toString()) return '';
+            if (!params.toString()) return [];
 
             try {
-                const resposta = await fetch(`/api/product-image?${params.toString()}`, { headers: { 'Accept': 'application/json' } });
-                if (!resposta.ok) return '';
+                const resposta = await fetch(`/api/product-image-options?${params.toString()}`, { headers: { 'Accept': 'application/json' } });
+                if (!resposta.ok) return [];
                 const dados = await resposta.json();
-                return String(dados.imageUrl || '').trim();
+                return Array.isArray(dados.options) ? dados.options : [];
             } catch (erro) {
-                return '';
+                return [];
             }
         }
 
-        async function gerarImagemProdutoAutomatica(mostrarStatus = false) {
+        function renderizarOpcoesImagemProduto(opcoes) {
+            const container = document.getElementById('produtoImagemOpcoes');
+            if (!container) return;
+
+            container.innerHTML = '';
+            opcoes.forEach((opcao) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.style.border = '2px solid #dbe4ef';
+                btn.style.borderRadius = '8px';
+                btn.style.padding = '0';
+                btn.style.background = '#fff';
+                btn.style.cursor = 'pointer';
+                btn.title = `Fonte: ${opcao.source || 'internet'}`;
+
+                const img = document.createElement('img');
+                img.src = opcao.imageUrl;
+                img.alt = 'Opcao de imagem';
+                img.loading = 'lazy';
+                img.style.width = '100%';
+                img.style.height = '88px';
+                img.style.objectFit = 'cover';
+                img.style.borderRadius = '6px';
+                btn.appendChild(img);
+
+                btn.addEventListener('click', () => {
+                    atualizarPreviewImagemProduto(String(opcao.imageUrl || ''), 'Imagem selecionada da internet');
+                });
+
+                container.appendChild(btn);
+            });
+        }
+
+        async function buscarImagensInternetProduto(mostrarStatus = true) {
             const nome = String(document.getElementById('produtoNome')?.value || '').trim();
             const codigoBarras = String(document.getElementById('produtoCodigoBarras')?.value || '').trim();
 
             if (!nome && !codigoBarras) {
-                atualizarPreviewImagemProduto('', 'Digite nome ou codigo de barras para gerar imagem');
-                if (mostrarStatus) mostrarAlerta('Digite nome ou codigo de barras para gerar imagem', 'erro');
-                return '';
+                if (mostrarStatus) mostrarAlerta('Digite nome ou codigo de barras para buscar imagens', 'erro');
+                return;
             }
 
-            const url = await buscarImagemProdutoServidor(nome, codigoBarras);
-
-            if (!url) {
-                atualizarPreviewImagemProduto('', 'Nao foi possivel gerar imagem para este produto');
-                if (mostrarStatus) mostrarAlerta('Nao foi possivel gerar imagem agora', 'erro');
-                return '';
+            const opcoes = await buscarOpcoesImagemProduto(nome, codigoBarras);
+            if (!opcoes.length) {
+                renderizarOpcoesImagemProduto([]);
+                if (mostrarStatus) mostrarAlerta('Nenhuma imagem encontrada no momento', 'erro');
+                return;
             }
 
-            atualizarPreviewImagemProduto(
-                url,
-                codigoBarras ? 'Imagem gerada por codigo/nome' : 'Imagem gerada por nome do produto'
-            );
-            if (mostrarStatus) mostrarAlerta('Imagem do produto atualizada', 'sucesso');
-            return url;
-        }
-
-        function agendarGeracaoImagemProduto() {
-            if (imagemProdutoTimeout) {
-                clearTimeout(imagemProdutoTimeout);
-            }
-
-            imagemProdutoTimeout = setTimeout(() => {
-                gerarImagemProdutoAutomatica(false);
-            }, 450);
+            renderizarOpcoesImagemProduto(opcoes);
+            atualizarPreviewImagemProduto(String(opcoes[0].imageUrl || ''), 'Selecione uma das opcoes de imagem');
+            if (mostrarStatus) mostrarAlerta(`${opcoes.length} imagem(ns) encontrada(s)`, 'sucesso');
         }
 
         function usuarioEhAdmin() {
@@ -2148,15 +2166,7 @@
                 if(info) info.textContent = `Última venda: #${lastId}`;
             }
 
-            const campoNomeProduto = document.getElementById('produtoNome');
-            const campoCodigoProduto = document.getElementById('produtoCodigoBarras');
             const campoUrlImagemProduto = document.getElementById('produtoImagemUrl');
-            if (campoNomeProduto) {
-                campoNomeProduto.addEventListener('input', agendarGeracaoImagemProduto);
-            }
-            if (campoCodigoProduto) {
-                campoCodigoProduto.addEventListener('input', agendarGeracaoImagemProduto);
-            }
             if (campoUrlImagemProduto) {
                 campoUrlImagemProduto.addEventListener('input', () => {
                     const url = campoUrlImagemProduto.value.trim();
@@ -3093,7 +3103,9 @@
             document.getElementById('produtoPreco').value = '';
             document.getElementById('produtoEstoque').value = '';
             document.getElementById('produtoCodigoBarras').value = '';
-            atualizarPreviewImagemProduto('', 'A imagem sera gerada automaticamente');
+            atualizarPreviewImagemProduto('', 'Use "Buscar na Internet" para escolher uma imagem');
+            const opcoesImagem = document.getElementById('produtoImagemOpcoes');
+            if (opcoesImagem) opcoesImagem.innerHTML = '';
             document.getElementById('produtoImagemArquivo').value = '';
             document.getElementById('produtoCategoria').value = '';
             document.getElementById('modalProduto').classList.add('ativo');
@@ -3114,7 +3126,9 @@
             document.getElementById('produtoPreco').value = produto.preco;
             document.getElementById('produtoEstoque').value = produto.estoque;
             document.getElementById('produtoCodigoBarras').value = produto.codigoBarras || '';
-            atualizarPreviewImagemProduto(produto.imagemUrl || '', produto.imagemUrl ? 'Imagem atual do produto' : 'A imagem sera gerada automaticamente');
+            atualizarPreviewImagemProduto(produto.imagemUrl || '', produto.imagemUrl ? 'Imagem atual do produto' : 'Use "Buscar na Internet" para escolher uma imagem');
+            const opcoesImagem = document.getElementById('produtoImagemOpcoes');
+            if (opcoesImagem) opcoesImagem.innerHTML = '';
             document.getElementById('produtoImagemArquivo').value = '';
             document.getElementById('produtoCategoria').value = categoriasProdutoPermitidas.includes(produto.categoria)
                 ? produto.categoria
@@ -3145,10 +3159,6 @@
             if (codigoBarras && produtos.some(p => p.id !== (produtoEmEdicao ? produtoEmEdicao.id : null) && String(p.codigoBarras || '') === codigoBarras)) {
                 mostrarAlerta('Codigo de barras ja cadastrado para outro produto', 'erro');
                 return;
-            }
-
-            if (!imagemUrl) {
-                imagemUrl = await gerarImagemProdutoAutomatica(false);
             }
 
             if (produtoEmEdicao) {
