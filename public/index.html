@@ -2042,7 +2042,7 @@
             atualizarListaAssociados();
             mostrarVendasParaEdicao();
             aplicarPermissoesInterface();
-            abrirAbaVendasPorQuery();
+            aplicarNavegacaoPrincipalPorQuery();
             agendarSalvarServidor();
             // exibir última venda salva
             const lastId = localStorage.getItem('lastSaleId');
@@ -2249,14 +2249,35 @@
             trocarAbaGestao(aba);
         }
 
-        function abrirAbaVendasPorQuery() {
+        function aplicarNavegacaoPrincipalPorQuery() {
             const params = new URLSearchParams(window.location.search || '');
             const aba = String(params.get('aba') || '').trim();
-            const abasValidas = ['estoque', 'categoriaProdutos', 'editarVenda', 'relatorioDiario'];
-            if (!abasValidas.includes(aba)) return;
+            const modoSolo = String(params.get('solo') || '') === '1';
+            const abasVendas = ['estoque', 'categoriaProdutos', 'editarVenda', 'relatorioDiario'];
+            const abasGestao = ['visao', 'relatorio', 'fiados', 'associado', 'entrada'];
+            if (!aba) return;
 
-            const btn = document.querySelector(`.panel:first-of-type .tabs .tab-btn[data-aba="${aba}"]`);
-            trocarAba(aba, btn || null);
+            if (abasVendas.includes(aba)) {
+                const btn = document.querySelector(`.panel:first-of-type .tabs .tab-btn[data-aba="${aba}"]`);
+                trocarAba(aba, btn || null);
+                if (modoSolo) {
+                    const panelGestao = document.querySelector('.content .panel:nth-of-type(2)');
+                    if (panelGestao) panelGestao.style.display = 'none';
+                    const content = document.querySelector('.content');
+                    if (content) content.style.gridTemplateColumns = '1fr';
+                }
+                return;
+            }
+
+            if (abasGestao.includes(aba)) {
+                trocarAbaGestao(aba);
+                if (modoSolo) {
+                    const panelVendas = document.querySelector('.content .panel:first-of-type');
+                    if (panelVendas) panelVendas.style.display = 'none';
+                    const content = document.querySelector('.content');
+                    if (content) content.style.gridTemplateColumns = '1fr';
+                }
+            }
         }
 
         function trocarAbaGestao(aba) {

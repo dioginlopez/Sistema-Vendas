@@ -1164,6 +1164,22 @@ app.get('/gestao.html', requireLogin, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'gestao.html'));
 });
 
+app.get('/app/:tab', requireLogin, (req, res) => {
+  const tab = String(req.params.tab || '').trim();
+  const vendasTabs = new Set(['estoque', 'categoriaProdutos', 'editarVenda', 'relatorioDiario']);
+  const gestaoTabs = new Set(['visao', 'relatorio', 'fiados', 'associado', 'usuarios', 'entrada']);
+
+  if (vendasTabs.has(tab)) {
+    return res.redirect(`/index.html?aba=${encodeURIComponent(tab)}&solo=1`);
+  }
+
+  if (gestaoTabs.has(tab)) {
+    return res.redirect(`/gestao.html?aba=${encodeURIComponent(tab)}&solo=1`);
+  }
+
+  return res.status(404).send('Aba não encontrada');
+});
+
 // protect main page
 app.get('/', requireLogin, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'principal.html'));
