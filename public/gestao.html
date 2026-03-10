@@ -164,12 +164,50 @@
 
         .produto-thumb {
             width: 100%;
-            height: 118px;
-            object-fit: cover;
+            height: 150px;
+            object-fit: contain;
+            object-position: center;
             border-radius: 8px;
             border: 1px solid #e2e8f0;
             margin-bottom: 10px;
-            background: #ffffff;
+            background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+            padding: 6px;
+        }
+
+        .produto-thumb-mini {
+            width: 72px;
+            height: 72px;
+            object-fit: contain;
+            object-position: center;
+            border-radius: 10px;
+            border: 1px solid #dbe4ef;
+            background: #f8fafc;
+            padding: 4px;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+
+        .produto-preview {
+            display: none;
+            width: 100%;
+            max-height: 220px;
+            object-fit: contain;
+            object-position: center;
+            border-radius: 10px;
+            border: 1px solid #dbe4ef;
+            margin-top: 8px;
+            background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+            padding: 8px;
+        }
+
+        .produto-opcao-thumb {
+            width: 100%;
+            height: 88px;
+            object-fit: contain;
+            object-position: center;
+            border-radius: 6px;
+            background: #f8fafc;
+            padding: 4px;
         }
 
         /* pesquisa de associado estilizada */
@@ -1547,7 +1585,7 @@
                 </div>
                 <div id="produtoImagemOpcoes" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-top:10px;"></div>
                 <small id="produtoImagemStatus" style="display:block;margin-top:6px;color:#64748b;"></small>
-                <img id="produtoImagemPreview" alt="Preview da imagem do produto" style="display:none;width:100%;max-height:180px;object-fit:cover;border-radius:10px;border:1px solid #dbe4ef;margin-top:8px;">
+                <img id="produtoImagemPreview" class="produto-preview" alt="Preview da imagem do produto">
             </div>
             <div class="form-group">
                 <label for="produtoCategoria">Categoria:</label>
@@ -1865,10 +1903,7 @@
                 img.src = opcao.imageUrl;
                 img.alt = 'Opcao de imagem';
                 img.loading = 'lazy';
-                img.style.width = '100%';
-                img.style.height = '88px';
-                img.style.objectFit = 'cover';
-                img.style.borderRadius = '6px';
+                img.className = 'produto-opcao-thumb';
                 btn.appendChild(img);
 
                 btn.addEventListener('click', () => {
@@ -2814,7 +2849,7 @@
                     ? '<i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>'
                     : '<i class="bi bi-check-circle-fill" aria-hidden="true"></i>';
                 const imagemProduto = produto.imagemUrl
-                    ? `<img src="${produto.imagemUrl}" alt="Imagem de ${produto.nome}" loading="lazy" style="width:66px;height:66px;object-fit:cover;border-radius:8px;border:1px solid #dbe4ef;margin-right:10px;" onerror="this.style.display='none'">`
+                    ? `<img src="${produto.imagemUrl}" class="produto-thumb-mini" alt="Imagem de ${produto.nome}" loading="lazy" onerror="this.style.display='none'">`
                     : '';
 
                 const acoesAdmin = usuarioEhAdmin()
