@@ -2,15 +2,26 @@ services:
   - type: web
     name: sistema-vendas
     env: node
-    plan: free
+    plan: starter
     autoDeploy: true
     buildCommand: npm install
     startCommand: npm start
     healthCheckPath: /
+    disks:
+      - name: sistema-vendas-data
+        mountPath: /var/data
     envVars:
       - key: NODE_ENV
         value: production
       - key: SESSION_SECRET
         generateValue: true
+      - key: DB_FILE
+        value: /var/data/db.json
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: sistema-vendas-db
+          property: connectionString
+
+databases:
+  - name: sistema-vendas-db
+    plan: free
