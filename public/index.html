@@ -1649,31 +1649,22 @@
             statusEl.textContent = status || 'Imagem vinculada ao produto';
         }
 
-        async function buscarImagemPorCodigoBarras(codigoBarras) {
+        async function buscarImagemProdutoServidor(nomeProduto, codigoBarras) {
+            const params = new URLSearchParams();
+            const nome = String(nomeProduto || '').trim();
             const codigo = limparCodigoBarras(codigoBarras);
-            if (!codigo) return '';
+            if (nome) params.set('nome', nome);
+            if (codigo) params.set('codigo', codigo);
+            if (!params.toString()) return '';
 
             try {
-                const resposta = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(codigo)}.json`);
+                const resposta = await fetch(`/api/product-image?${params.toString()}`, { headers: { 'Accept': 'application/json' } });
                 if (!resposta.ok) return '';
-
                 const dados = await resposta.json();
-                if (!dados || dados.status !== 1 || !dados.product) return '';
-
-                const produto = dados.product;
-                return produto.image_front_url
-                    || produto.image_url
-                    || (produto.selected_images && produto.selected_images.front && produto.selected_images.front.display
-                        ? (produto.selected_images.front.display.pt || produto.selected_images.front.display.en || '')
-                        : '');
+                return String(dados.imageUrl || '').trim();
             } catch (erro) {
                 return '';
             }
-        }
-
-        function montarImagemFallbackPorNome(nomeProduto) {
-            const consulta = encodeURIComponent(`${String(nomeProduto || '').trim()} produto embalagem`);
-            return consulta ? `https://source.unsplash.com/600x400/?${consulta}` : '';
         }
 
         async function gerarImagemProdutoAutomatica(mostrarStatus = false) {
@@ -1686,14 +1677,7 @@
                 return '';
             }
 
-            let url = '';
-            if (codigoBarras) {
-                url = await buscarImagemPorCodigoBarras(codigoBarras);
-            }
-
-            if (!url && nome) {
-                url = montarImagemFallbackPorNome(nome);
-            }
+            const url = await buscarImagemProdutoServidor(nome, codigoBarras);
 
             if (!url) {
                 atualizarPreviewImagemProduto('', 'Não foi possível gerar imagem para este produto');

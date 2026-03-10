@@ -548,6 +548,50 @@ app.delete('/api/users/:id', requireLogin, requireAdmin, async (req, res) => {
   return res.status(204).end();
 });
 
+app.get('/api/product-image', requireLogin, async (req, res) => {
+  const nome = String(req.query.nome || '').trim();
+  const codigo = normalizeCpf(String(req.query.codigo || '')).trim();
+
+  if (!nome && !codigo) {
+    return res.status(400).json({ error: 'Informe nome ou codigo do produto' });
+  }
+
+  let imageUrl = '';
+  let source = '';
+
+  if (codigo) {
+    try {
+      const resposta = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(codigo)}.json`);
+      if (resposta.ok) {
+        const dados = await resposta.json();
+        if (dados && dados.status === 1 && dados.product) {
+          const produto = dados.product;
+          imageUrl = produto.image_front_url
+            || produto.image_url
+            || (produto.selected_images && produto.selected_images.front && produto.selected_images.front.display
+              ? (produto.selected_images.front.display.pt || produto.selected_images.front.display.en || '')
+              : '');
+          source = imageUrl ? 'openfoodfacts' : '';
+        }
+      }
+    } catch (error) {
+      // Silent fallback to name-based image.
+    }
+  }
+
+  if (!imageUrl && nome) {
+    const termo = encodeURIComponent(`${nome} produto embalagem`);
+    imageUrl = `https://loremflickr.com/640/480/${termo}`;
+    source = 'fallback';
+  }
+
+  if (!imageUrl) {
+    return res.status(404).json({ error: 'Imagem não encontrada' });
+  }
+
+  return res.json({ imageUrl, source });
+});
+
 // protect main page
 app.get('/', requireLogin, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
