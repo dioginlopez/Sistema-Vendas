@@ -1230,7 +1230,7 @@
                 <div class="alert" id="alert"></div>
                 <div id="lastSaleInfo" style="margin-top:10px; font-weight:bold;"></div>
                 <button class="btn btn-secondary" onclick="window.location.href='principal.html'" style="margin: 10px 0 10px 0; width: 100%;"><i class="bi bi-compass" aria-hidden="true"></i> Ir para Principal</button>
-                <button class="btn btn-secondary" onclick="window.location.href='gestao.html'" style="margin: 10px 0 15px 0; width: 100%;">Ir para Gestão de Estoque</button>
+                <button class="btn btn-secondary" onclick="window.location.href='/app/visao'" style="margin: 10px 0 15px 0; width: 100%;">Ir para Gestão de Estoque</button>
 
                 <div class="tabs">
                     <button class="tab-btn ativo" data-aba="estoque" onclick="trocarAba('estoque', this)">Produtos</button>
@@ -1751,7 +1751,7 @@
         async function buscarOpcoesImagemProduto(nomeProduto, codigoBarras, marcaProduto) {
             const params = new URLSearchParams();
             const nome = String(nomeProduto || '').trim();
-            const codigo = limparCodigoBarras(codigoBarras);
+            const codigo = String(codigoBarras || '').trim();
             const marca = String(marcaProduto || '').trim();
             if (nome) params.set('nome', nome);
             if (codigo) params.set('codigo', codigo);
@@ -1856,16 +1856,6 @@
         function navegacaoEhRecarregamento() {
             const nav = performance.getEntriesByType('navigation');
             return Array.isArray(nav) && nav[0] && nav[0].type === 'reload';
-        }
-
-        function encerrarSessaoAoSairPagina() {
-            try {
-                if (navigator.sendBeacon) {
-                    navigator.sendBeacon('/logout-beacon');
-                }
-            } catch (erro) {
-                // noop
-            }
         }
 
         function bloquearAcaoAdmin() {
@@ -2021,10 +2011,8 @@
         // Inicializar
         document.addEventListener('DOMContentLoaded', async () => {
             window.addEventListener('offline', redirecionarParaLogin);
-            window.addEventListener('pagehide', encerrarSessaoAoSairPagina);
 
             if (navegacaoEhRecarregamento()) {
-                encerrarSessaoAoSairPagina();
                 redirecionarParaLogin();
                 return;
             }

@@ -32,6 +32,34 @@ function normalizeCpf(cpf) {
   return String(cpf || '').replace(/\D/g, '');
 }
 
+function normalizeGenericCode(value) {
+  return String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function findProductByAnyCode(codigoInformado) {
+  const codigoOriginal = String(codigoInformado || '').trim();
+  if (!codigoOriginal) return null;
+
+  const codigoNormalizado = normalizeGenericCode(codigoOriginal);
+  const codigoDigitos = normalizeCpf(codigoOriginal);
+  if (!codigoNormalizado && !codigoDigitos) return null;
+
+  const produtos = Array.isArray(db.data && db.data.products) ? db.data.products : [];
+  return produtos.find((produto) => {
+    const candidatos = [produto && produto.codigoBarras, produto && produto.codigo, produto && produto.sku, produto && produto.id]
+      .map((item) => String(item || '').trim())
+      .filter(Boolean);
+
+    return candidatos.some((candidato) => {
+      const normalizado = normalizeGenericCode(candidato);
+      const digitos = normalizeCpf(candidato);
+      if (codigoNormalizado && normalizado === codigoNormalizado) return true;
+      if (codigoDigitos && digitos === codigoDigitos) return true;
+      return false;
+    });
+  }) || null;
+}
+
 function isAdminUser(user) {
   return user && (user.perfil || 'operador') === 'admin' && user.ativo !== false;
 }
@@ -773,15 +801,27 @@ app.delete('/api/users/:id', requireLogin, requireAdmin, async (req, res) => {
 
 app.get('/api/product-image', requireLogin, async (req, res) => {
   const nome = String(req.query.nome || '').trim();
-  const codigo = normalizeCpf(String(req.query.codigo || '')).trim();
+  const codigoInformado = String(req.query.codigo || '').trim();
+  const codigo = normalizeCpf(codigoInformado).trim();
+  let nomeBusca = nome;
+  let marcaBusca = '';
 
-  if (!nome && !codigo) {
+  await ensureDbLoaded();
+  if (codigoInformado && !nomeBusca) {
+    const produtoLocal = findProductByAnyCode(codigoInformado);
+    if (produtoLocal) {
+      nomeBusca = String(produtoLocal.nome || '').trim();
+      marcaBusca = String(produtoLocal.marca || '').trim();
+    }
+  }
+
+  if (!nomeBusca && !codigoInformado && !codigo) {
     return res.status(400).json({ error: 'Informe nome ou codigo do produto' });
   }
 
   let imageUrl = '';
   let source = '';
-  const termoFallback = String(nome || codigo || 'produto').trim();
+  const termoFallback = String(nomeBusca || codigoInformado || codigo || 'produto').trim();
 
   async function buscarImagemWikimedia(termo) {
     const consulta = String(termo || '').trim();
@@ -806,7 +846,7 @@ app.get('/api/product-image', requireLogin, async (req, res) => {
     return '';
   }
 
-  if (codigo) {
+  if (codigo && codigo.length >= 8) {
     try {
       const resposta = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(codigo)}.json`, {
         signal: AbortSignal.timeout(4500),
@@ -828,18 +868,18 @@ app.get('/api/product-image', requireLogin, async (req, res) => {
     }
   }
 
-  if (!imageUrl && nome) {
+  if (!imageUrl && nomeBusca) {
     try {
-      imageUrl = await buscarImagemWikimedia(nome);
+      imageUrl = await buscarImagemWikimedia(`${nomeBusca} ${marcaBusca}`.trim());
       source = imageUrl ? 'wikimedia-name' : source;
     } catch (error) {
       // Silent fallback.
     }
   }
 
-  if (!imageUrl && codigo) {
+  if (!imageUrl && codigoInformado) {
     try {
-      imageUrl = await buscarImagemWikimedia(codigo);
+      imageUrl = await buscarImagemWikimedia(codigoInformado);
       source = imageUrl ? 'wikimedia-barcode' : source;
     } catch (error) {
       // Silent fallback.
@@ -890,10 +930,22 @@ app.get('/api/product-image', requireLogin, async (req, res) => {
 
 app.get('/api/product-image-options', requireLogin, async (req, res) => {
   const nome = String(req.query.nome || '').trim();
-  const codigo = normalizeCpf(String(req.query.codigo || '')).trim();
+  const codigoInformado = String(req.query.codigo || '').trim();
+  const codigo = normalizeCpf(codigoInformado).trim();
   const marca = String(req.query.marca || '').trim();
+  let nomeBusca = nome;
+  let marcaBusca = marca;
 
-  if (!nome && !codigo && !marca) {
+  await ensureDbLoaded();
+  if (codigoInformado && (!nomeBusca || !marcaBusca)) {
+    const produtoLocal = findProductByAnyCode(codigoInformado);
+    if (produtoLocal) {
+      if (!nomeBusca) nomeBusca = String(produtoLocal.nome || '').trim();
+      if (!marcaBusca) marcaBusca = String(produtoLocal.marca || '').trim();
+    }
+  }
+
+  if (!nomeBusca && !codigoInformado && !codigo && !marcaBusca) {
     return res.status(400).json({ error: 'Informe nome, marca ou codigo do produto' });
   }
 
@@ -1003,7 +1055,7 @@ app.get('/api/product-image-options', requireLogin, async (req, res) => {
       .slice(0, 5);
   }
 
-  if (codigo) {
+  if (codigo && codigo.length >= 8) {
     try {
       const resposta = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(codigo)}.json`, {
         signal: AbortSignal.timeout(4500),
@@ -1021,10 +1073,10 @@ app.get('/api/product-image-options', requireLogin, async (req, res) => {
     }
   }
 
-  const termoBusca = codigo || nome || marca;
-  if (termoBusca || marca) {
+  const termoBusca = codigoInformado || nomeBusca || marcaBusca;
+  if (termoBusca || marcaBusca) {
     try {
-      const melhoresBing = await buscarMelhoresImagensBing(termoBusca, marca);
+      const melhoresBing = await buscarMelhoresImagensBing(termoBusca, marcaBusca);
       melhoresBing.forEach((url, idx) => adicionarOpcao(url, idx === 0 ? 'bing-first' : 'bing-related'));
     } catch (error) {
       // ignore
@@ -1033,7 +1085,7 @@ app.get('/api/product-image-options', requireLogin, async (req, res) => {
 
   if (termoBusca) {
     try {
-      const wikiUrl = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=${encodeURIComponent(`${termoBusca} ${marca} produto embalagem`)}&gsrlimit=12&prop=imageinfo&iiprop=url|mime&format=json`;
+      const wikiUrl = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=${encodeURIComponent(`${termoBusca} ${marcaBusca} produto embalagem`)}&gsrlimit=12&prop=imageinfo&iiprop=url|mime&format=json`;
       const resposta = await fetch(wikiUrl, { signal: AbortSignal.timeout(4500) });
       if (resposta.ok) {
         const dados = await resposta.json();
@@ -1051,9 +1103,9 @@ app.get('/api/product-image-options', requireLogin, async (req, res) => {
     }
   }
 
-  adicionarOpcao(`https://loremflickr.com/640/480/${encodeURIComponent(`${termoBusca || 'produto'} ${marca},produto,embalagem`)}`, 'loremflickr');
-  adicionarOpcao(`https://picsum.photos/seed/${encodeURIComponent(`${termoBusca || 'produto'}-${marca || 'marca'}`)}/640/480`, 'picsum');
-  adicionarOpcao(gerarSvgProdutoFallback(`${termoBusca || 'produto'} ${marca || ''}`), 'local-fallback');
+  adicionarOpcao(`https://loremflickr.com/640/480/${encodeURIComponent(`${termoBusca || 'produto'} ${marcaBusca},produto,embalagem`)}`, 'loremflickr');
+  adicionarOpcao(`https://picsum.photos/seed/${encodeURIComponent(`${termoBusca || 'produto'}-${marcaBusca || 'marca'}`)}/640/480`, 'picsum');
+  adicionarOpcao(gerarSvgProdutoFallback(`${termoBusca || 'produto'} ${marcaBusca || ''}`), 'local-fallback');
 
   return res.json({ options: opcoes.slice(0, 10) });
 });
