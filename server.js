@@ -624,19 +624,15 @@ app.get('/api/product-image', requireLogin, async (req, res) => {
   }
 
   if (!imageUrl) {
-    // Deterministic search fallback by product term.
     imageUrl = `https://loremflickr.com/640/480/${encodeURIComponent(`${termoFallback},produto,embalagem`)}`;
     source = 'fallback';
   }
 
-  if (!imageUrl) {
-    return res.status(404).json({ error: 'Imagem não encontrada' });
-  }
-
-  return res.json({ imageUrl, source });
+  const proxiedUrl = `/api/image-proxy?url=${encodeURIComponent(imageUrl)}`;
+  return res.json({ imageUrl: proxiedUrl, originalUrl: imageUrl, source });
 });
 
-app.get('/api/download-image', requireLogin, async (req, res) => {
+app.get('/api/image-proxy', requireLogin, async (req, res) => {
   const urlParam = String(req.query.url || '').trim();
   if (!urlParam) {
     return res.status(400).json({ error: 'URL da imagem nao informada' });
@@ -654,7 +650,65 @@ app.get('/api/download-image', requireLogin, async (req, res) => {
   }
 
   try {
-    const resposta = await fetch(imageUrl.toString());
+    const resposta = await fetch(imageUrl.toString(), {
+      signal: AbortSignal.timeout(7000),
+      headers: {
+        'User-Agent': 'Mozilla/5.0 TocaApp/1.0',
+      },
+    });
+
+    if (!resposta.ok) {
+      return res.status(404).json({ error: 'Nao foi possivel carregar a imagem' });
+    }
+
+    const contentType = String(resposta.headers.get('content-type') || '').toLowerCase();
+    if (!contentType.startsWith('image/')) {
+      return res.status(400).json({ error: 'URL nao retornou imagem valida' });
+    }
+
+    const arquivo = Buffer.from(await resposta.arrayBuffer());
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    return res.send(arquivo);
+  } catch (error) {
+    return res.status(500).json({ error: 'Falha ao processar imagem' });
+  }
+});
+
+app.get('/api/download-image', requireLogin, async (req, res) => {
+  const urlParam = String(req.query.url || '').trim();
+  if (!urlParam) {
+    return res.status(400).json({ error: 'URL da imagem nao informada' });
+  }
+
+  let finalUrl = urlParam;
+  if (urlParam.startsWith('/api/image-proxy?')) {
+    const parsedProxy = new URL(urlParam, 'http://local');
+    const innerUrl = String(parsedProxy.searchParams.get('url') || '').trim();
+    if (!innerUrl) {
+      return res.status(400).json({ error: 'URL da imagem invalida' });
+    }
+    finalUrl = innerUrl;
+  }
+
+  let imageUrl;
+  try {
+    imageUrl = new URL(finalUrl);
+  } catch (error) {
+    return res.status(400).json({ error: 'URL da imagem invalida' });
+  }
+
+  if (!['http:', 'https:'].includes(imageUrl.protocol)) {
+    return res.status(400).json({ error: 'Protocolo de URL nao permitido' });
+  }
+
+  try {
+    const resposta = await fetch(imageUrl.toString(), {
+      signal: AbortSignal.timeout(7000),
+      headers: {
+        'User-Agent': 'Mozilla/5.0 TocaApp/1.0',
+      },
+    });
     if (!resposta.ok) {
       return res.status(404).json({ error: 'Nao foi possivel baixar a imagem' });
     }
