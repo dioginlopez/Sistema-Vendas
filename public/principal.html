@@ -49,35 +49,15 @@
       background: rgba(255, 255, 255, 0.16);
       border: 1px solid rgba(255, 255, 255, 0.3);
     }
-    .actions {
-      margin: 18px 0 20px;
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-    .btn {
-      border: none;
+    .hub-intro {
+      margin: 18px 0 16px;
+      padding: 12px 14px;
       border-radius: 10px;
-      padding: 11px 16px;
-      cursor: pointer;
-      font-weight: 700;
-      font-size: 0.95rem;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .btn:hover { transform: translateY(-1px); }
-    .btn-main {
-      background: linear-gradient(135deg, #f39c12 0%, #df8200 100%);
-      color: #ffffff;
-      box-shadow: 0 8px 18px rgba(223, 130, 0, 0.28);
-    }
-    .btn-soft {
       background: #ffffff;
-      color: #1e405f;
-      border: 1px solid #d2dce8;
+      border: 1px solid #dce6f2;
+      color: #35556f;
+      font-size: 0.95rem;
+      box-shadow: 0 6px 14px rgba(35, 59, 86, 0.06);
     }
     .sections {
       display: grid;
@@ -164,11 +144,8 @@
       <div class="badge" id="perfilAtual">Perfil: carregando...</div>
     </section>
 
-    <div class="actions">
-      <a class="btn btn-main" href="/index.html?aba=estoque"><i class="bi bi-play-fill" aria-hidden="true"></i> Entrar no Sistema</a>
-      <a class="btn btn-soft" href="/index.html?aba=estoque"><i class="bi bi-house-door" aria-hidden="true"></i> Abrir Tela de Vendas</a>
-      <a class="btn btn-soft" href="/gestao.html#relatorio"><i class="bi bi-graph-up" aria-hidden="true"></i> Ir para Relatorios</a>
-      <a class="btn btn-soft" href="/gestao.html#fiados"><i class="bi bi-cash-coin" aria-hidden="true"></i> Ir para Recebimentos</a>
+    <div class="hub-intro">
+      Selecione abaixo a aba desejada. A navegacao principal do sistema passa por esta tela.
     </div>
 
     <div class="sections">
