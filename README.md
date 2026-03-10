@@ -84,6 +84,10 @@ http://localhost:3000
 - `BOOTSTRAP_ADMIN_NOME`: nome do primeiro admin (opcional, padrao `ADMIN`)
 - `DATABASE_URL`: conexao PostgreSQL (Neon/Supabase/Render Postgres)
 - `PGSSLMODE`: opcional (`disable` para ambiente local sem SSL)
+- `AUTO_BACKUP_INTERVAL_MINUTES`: intervalo do backup automatico em minutos (padrao `1440`, 1x por dia; `0` desativa)
+- `AUTO_BACKUP_RETENTION`: quantidade maxima de backups mantidos (padrao `30`)
+- `AUTO_BACKUP_ON_START`: cria backup apos iniciar servidor (`true`/`false`, padrao `true`)
+- `BACKUP_DIR`: pasta dos backups (opcional; se omitido, usa pasta gravavel automatica)
 
 Exemplo PowerShell:
 
@@ -159,6 +163,21 @@ Observacao importante:
 - Os dados ficam em `db.json`.
 - Em Render, o arquivo e persistido no disco (`/var/data/db.json`).
 - Sem persistencia, os dados se perdem em restart/redeploy.
+
+## Backups automaticos (servidor)
+
+O backend agora gera backups JSON automaticamente e mantem retencao configuravel.
+
+- Padrao: 1 backup por dia (`AUTO_BACKUP_INTERVAL_MINUTES=1440`)
+- Retencao padrao: 30 arquivos (`AUTO_BACKUP_RETENTION=30`)
+- Backup inicial ao subir app: ativo por padrao (`AUTO_BACKUP_ON_START=true`)
+
+Rotas admin:
+
+- `GET /api/backups` lista backups disponiveis
+- `POST /api/backups` cria backup manual imediato
+- `GET /api/backups/latest/download` baixa o backup mais recente
+- `GET /api/backups/:name/download` baixa backup especifico
 
 ### Persistencia automatica em PostgreSQL (recomendado no plano free)
 

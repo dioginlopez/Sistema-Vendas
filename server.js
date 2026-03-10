@@ -13,6 +13,9 @@ const PORT = process.env.PORT || 3000;
 const SESSION_SECRET = process.env.SESSION_SECRET || 's3cr3t-local';
 const isProduction = process.env.NODE_ENV === 'production';
 const DATABASE_URL = String(process.env.DATABASE_URL || '').trim();
+const AUTO_BACKUP_INTERVAL_MINUTES = Math.max(0, Number(process.env.AUTO_BACKUP_INTERVAL_MINUTES || 1440));
+const AUTO_BACKUP_RETENTION = Math.max(1, Number(process.env.AUTO_BACKUP_RETENTION || 30));
+const AUTO_BACKUP_ON_START = String(process.env.AUTO_BACKUP_ON_START || 'true').toLowerCase() !== 'false';
 const BOOTSTRAP_ADMIN_CPF = normalizeCpf(process.env.BOOTSTRAP_ADMIN_CPF || '');
 const BOOTSTRAP_ADMIN_SENHA = String(process.env.BOOTSTRAP_ADMIN_SENHA || '');
 const BOOTSTRAP_ADMIN_NOME = String(process.env.BOOTSTRAP_ADMIN_NOME || 'ADMIN').trim() || 'ADMIN';
@@ -176,6 +179,132 @@ function resolveWritableDbFile() {
 const file = resolveWritableDbFile();
 const adapter = new JSONFile(file);
 const db = new Low(adapter, { products: [], users: [], vendas: [], associados: [], vendaCounter: 1, lastSaleId: null });
+const backupDir = resolveWritableBackupDir();
+
+function resolveWritableBackupDir() {
+  const requestedDir = String(process.env.BACKUP_DIR || '').trim();
+  const candidates = [
+    requestedDir,
+    path.join(path.dirname(file), 'backups'),
+    path.join(__dirname, 'backups'),
+    '/tmp/toca-backups',
+  ].filter(Boolean);
+
+  for (const candidate of candidates) {
+    try {
+      fs.mkdirSync(candidate, { recursive: true });
+      return candidate;
+    } catch (error) {
+      // Try next fallback when current path is not writable.
+    }
+  }
+
+  throw new Error('Nenhum caminho gravavel encontrado para backups');
+}
+
+function formatBackupTimestamp(date = new Date()) {
+  const y = date.getUTCFullYear();
+  const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(date.getUTCDate()).padStart(2, '0');
+  const hh = String(date.getUTCHours()).padStart(2, '0');
+  const mm = String(date.getUTCMinutes()).padStart(2, '0');
+  const ss = String(date.getUTCSeconds()).padStart(2, '0');
+  return `${y}${m}${d}-${hh}${mm}${ss}`;
+}
+
+function getStateSnapshot(reason) {
+  return {
+    createdAt: new Date().toISOString(),
+    reason: String(reason || 'manual'),
+    source: 'server-auto-backup',
+    state: db.data || {},
+  };
+}
+
+async function listBackupFiles() {
+  const files = await fs.promises.readdir(backupDir, { withFileTypes: true });
+  const jsonFiles = files
+    .filter((entry) => entry.isFile() && entry.name.endsWith('.json'))
+    .map((entry) => entry.name);
+
+  const details = await Promise.all(jsonFiles.map(async (name) => {
+    const fullPath = path.join(backupDir, name);
+    const stat = await fs.promises.stat(fullPath);
+    return {
+      name,
+      fullPath,
+      size: stat.size,
+      createdAt: stat.birthtime.toISOString(),
+      modifiedAt: stat.mtime.toISOString(),
+      sortTime: stat.mtimeMs,
+    };
+  }));
+
+  return details.sort((a, b) => b.sortTime - a.sortTime);
+}
+
+async function cleanupOldBackups() {
+  const backups = await listBackupFiles();
+  if (backups.length <= AUTO_BACKUP_RETENTION) {
+    return;
+  }
+
+  const removals = backups.slice(AUTO_BACKUP_RETENTION);
+  await Promise.all(removals.map(async (item) => {
+    try {
+      await fs.promises.unlink(item.fullPath);
+    } catch (error) {
+      console.error(`Falha ao remover backup antigo ${item.name}:`, error.message);
+    }
+  }));
+}
+
+async function createBackup(reason) {
+  await ensureDbLoaded();
+  const fileName = `backup-${formatBackupTimestamp()}-${String(reason || 'manual').replace(/[^a-zA-Z0-9_-]/g, '_')}.json`;
+  const fullPath = path.join(backupDir, fileName);
+  const snapshot = getStateSnapshot(reason);
+  await fs.promises.writeFile(fullPath, JSON.stringify(snapshot, null, 2), 'utf8');
+  await cleanupOldBackups();
+  return { fileName, fullPath, createdAt: snapshot.createdAt };
+}
+
+let backupRunning = false;
+async function runAutoBackupTick() {
+  if (backupRunning) {
+    return;
+  }
+
+  backupRunning = true;
+  try {
+    const backup = await createBackup('auto');
+    console.log(`Backup automatico criado: ${backup.fileName}`);
+  } catch (error) {
+    console.error('Falha no backup automatico:', error.message);
+  } finally {
+    backupRunning = false;
+  }
+}
+
+function startAutoBackupScheduler() {
+  if (!AUTO_BACKUP_INTERVAL_MINUTES || AUTO_BACKUP_INTERVAL_MINUTES <= 0) {
+    console.log('Backup automatico desativado (AUTO_BACKUP_INTERVAL_MINUTES <= 0).');
+    return;
+  }
+
+  const intervalMs = AUTO_BACKUP_INTERVAL_MINUTES * 60 * 1000;
+  if (AUTO_BACKUP_ON_START) {
+    setTimeout(() => {
+      runAutoBackupTick().catch(() => {});
+    }, 20_000);
+  }
+
+  setInterval(() => {
+    runAutoBackupTick().catch(() => {});
+  }, intervalMs);
+
+  console.log(`Backup automatico ativo a cada ${AUTO_BACKUP_INTERVAL_MINUTES} minuto(s).`);
+}
 
 async function initDB() {
   try {
@@ -431,6 +560,71 @@ app.put('/api/state', requireLogin, async (req, res) => {
 
   await persistDb();
   return res.json({ ok: true });
+});
+
+app.get('/api/backups', requireLogin, requireAdmin, async (req, res) => {
+  try {
+    const backups = await listBackupFiles();
+    const items = backups.map(({ name, size, createdAt, modifiedAt }) => ({
+      name,
+      size,
+      createdAt,
+      modifiedAt,
+    }));
+    return res.json({ backups: items });
+  } catch (error) {
+    return res.status(500).json({ error: 'Falha ao listar backups' });
+  }
+});
+
+app.post('/api/backups', requireLogin, requireAdmin, async (req, res) => {
+  try {
+    const backup = await createBackup('manual');
+    return res.status(201).json({
+      ok: true,
+      fileName: backup.fileName,
+      createdAt: backup.createdAt,
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Falha ao criar backup manual' });
+  }
+});
+
+app.get('/api/backups/latest/download', requireLogin, requireAdmin, async (req, res) => {
+  try {
+    const backups = await listBackupFiles();
+    const latest = backups[0];
+    if (!latest) {
+      return res.status(404).json({ error: 'Nenhum backup encontrado' });
+    }
+
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${latest.name}"`);
+    return res.sendFile(latest.fullPath);
+  } catch (error) {
+    return res.status(500).json({ error: 'Falha ao baixar backup mais recente' });
+  }
+});
+
+app.get('/api/backups/:name/download', requireLogin, requireAdmin, async (req, res) => {
+  const requestedName = path.basename(String(req.params.name || ''));
+  if (!requestedName.endsWith('.json')) {
+    return res.status(400).json({ error: 'Nome de backup invalido' });
+  }
+
+  const fullPath = path.join(backupDir, requestedName);
+  if (!fullPath.startsWith(backupDir)) {
+    return res.status(400).json({ error: 'Caminho de backup invalido' });
+  }
+
+  try {
+    await fs.promises.access(fullPath, fs.constants.R_OK);
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${requestedName}"`);
+    return res.sendFile(fullPath);
+  } catch (error) {
+    return res.status(404).json({ error: 'Backup nao encontrado' });
+  }
 });
 
 app.post('/api/users', requireLogin, requireAdmin, async (req, res) => {
@@ -937,7 +1131,7 @@ app.get('/api/download-image', requireLogin, async (req, res) => {
 
 // protect main page
 app.get('/', requireLogin, (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'public', 'principal.html'));
 });
 
 // Routes
@@ -946,4 +1140,5 @@ app.use('/api/products', requireLogin, productsRouter);
 
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
+  startAutoBackupScheduler();
 });

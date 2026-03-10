@@ -1413,6 +1413,9 @@
                     <div id="relatorioVendas"></div>
                     <button class="btn btn-secondary" onclick="exportarDados()" style="margin-top: 20px;"><i class="bi bi-bar-chart-line" aria-hidden="true"></i> Exportar Dados</button>
                     <button class="btn btn-secondary" onclick="exportarBackupCompleto()" style="margin-top: 10px;"><i class="bi bi-download" aria-hidden="true"></i> Backup Completo</button>
+                    <button class="btn btn-secondary" onclick="criarBackupServidor()" style="margin-top: 10px;"><i class="bi bi-cloud-plus" aria-hidden="true"></i> Criar Backup no Servidor</button>
+                    <button class="btn btn-secondary" onclick="baixarUltimoBackupServidor()" style="margin-top: 10px;"><i class="bi bi-cloud-arrow-down" aria-hidden="true"></i> Baixar Último Backup do Servidor</button>
+                    <button class="btn btn-secondary" onclick="baixarBackupServidorEspecifico()" style="margin-top: 10px;"><i class="bi bi-list-check" aria-hidden="true"></i> Escolher Backup do Servidor</button>
                     <button class="btn btn-secondary" onclick="importarBackupCompleto()" style="margin-top: 10px;"><i class="bi bi-upload" aria-hidden="true"></i> Restaurar Backup</button>
                     <input type="file" id="backupFileInput" accept=".json,application/json" style="display:none;" onchange="restaurarBackupCompleto(event)">
                     <button class="btn btn-danger" onclick="limparTodosDados()" style="margin-top: 10px; width: 100%;"><i class="bi bi-trash3" aria-hidden="true"></i> Limpar Todo Histórico</button>
@@ -3555,7 +3558,6 @@
 
         // Exportar Dados
         function exportarDados() {
-            if(!usuarioEhAdmin()) return bloquearAcaoAdmin();
             let texto = 'RELATÓRIO DE VENDAS\n';
             texto += '==================\n\n';
 
@@ -3603,6 +3605,91 @@
             a.click();
             window.URL.revokeObjectURL(url);
             mostrarAlerta('Backup completo exportado com sucesso', 'sucesso');
+        }
+
+        async function criarBackupServidor() {
+            if(!usuarioEhAdmin()) return bloquearAcaoAdmin();
+            try {
+                const resposta = await fetch('/api/backups', { method: 'POST' });
+                const dados = await resposta.json().catch(() => ({}));
+                if (!resposta.ok) {
+                    throw new Error(dados.error || 'Falha ao criar backup no servidor');
+                }
+                mostrarAlerta(`Backup criado no servidor: ${dados.fileName || 'ok'}`, 'sucesso');
+            } catch (error) {
+                mostrarAlerta(error.message || 'Erro ao criar backup no servidor', 'erro');
+            }
+        }
+
+        async function baixarUltimoBackupServidor() {
+            if(!usuarioEhAdmin()) return bloquearAcaoAdmin();
+            try {
+                const resposta = await fetch('/api/backups/latest/download');
+                if (!resposta.ok) {
+                    const dadosErro = await resposta.json().catch(() => ({}));
+                    throw new Error(dadosErro.error || 'Falha ao baixar ultimo backup');
+                }
+                const blob = await resposta.blob();
+                const url = window.URL.createObjectURL(blob);
+                const cd = resposta.headers.get('content-disposition') || '';
+                const match = cd.match(/filename="?([^";]+)"?/i);
+                const nomeArquivo = match ? match[1] : `backup_servidor_${new Date().toISOString().slice(0, 10)}.json`;
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = nomeArquivo;
+                a.click();
+                window.URL.revokeObjectURL(url);
+                mostrarAlerta('Backup mais recente baixado com sucesso', 'sucesso');
+            } catch (error) {
+                mostrarAlerta(error.message || 'Erro ao baixar backup do servidor', 'erro');
+            }
+        }
+
+        async function baixarBackupServidorEspecifico() {
+            if(!usuarioEhAdmin()) return bloquearAcaoAdmin();
+            try {
+                const resposta = await fetch('/api/backups');
+                const dados = await resposta.json().catch(() => ({}));
+                if (!resposta.ok) {
+                    throw new Error(dados.error || 'Falha ao listar backups do servidor');
+                }
+
+                const backups = Array.isArray(dados.backups) ? dados.backups : [];
+                if (!backups.length) {
+                    mostrarAlerta('Nenhum backup encontrado no servidor', 'erro');
+                    return;
+                }
+
+                const opcoes = backups
+                    .map((b, i) => `${i + 1}. ${b.name}`)
+                    .join('\n');
+                const escolha = window.prompt(`Escolha o numero do backup para baixar:\n\n${opcoes}`);
+                if (escolha === null) return;
+
+                const indice = Number(escolha) - 1;
+                const selecionado = backups[indice];
+                if (!selecionado) {
+                    mostrarAlerta('Opcao de backup invalida', 'erro');
+                    return;
+                }
+
+                const download = await fetch(`/api/backups/${encodeURIComponent(selecionado.name)}/download`);
+                if (!download.ok) {
+                    const dadosErro = await download.json().catch(() => ({}));
+                    throw new Error(dadosErro.error || 'Falha ao baixar backup selecionado');
+                }
+
+                const blob = await download.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = selecionado.name;
+                a.click();
+                window.URL.revokeObjectURL(url);
+                mostrarAlerta(`Backup ${selecionado.name} baixado com sucesso`, 'sucesso');
+            } catch (error) {
+                mostrarAlerta(error.message || 'Erro ao baixar backup do servidor', 'erro');
+            }
         }
 
         function importarBackupCompleto() {
