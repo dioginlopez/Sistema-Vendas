@@ -624,8 +624,9 @@ app.get('/api/product-image', requireLogin, async (req, res) => {
   }
 
   if (!imageUrl) {
-    imageUrl = `https://loremflickr.com/640/480/${encodeURIComponent(`${termoFallback},produto,embalagem`)}`;
-    source = 'fallback';
+    const prompt = `${termoFallback}, product packaging, e-commerce photo, studio lighting`;
+    imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=768&height=768&seed=${encodeURIComponent(termoFallback)}`;
+    source = 'ai-fallback';
   }
 
   const proxiedUrl = `/api/image-proxy?url=${encodeURIComponent(imageUrl)}`;
