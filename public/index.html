@@ -162,6 +162,16 @@
             transform: translateY(-8px);
         }
 
+        .produto-thumb {
+            width: 100%;
+            height: 118px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 10px;
+            background: #ffffff;
+        }
+
         /* pesquisa de associado estilizada */
         #associadoSearch {
             padding-left: 2.5rem;
@@ -1424,6 +1434,15 @@
                 <input type="text" id="produtoCodigoBarras" placeholder="Ex: 7891234567890" inputmode="numeric" maxlength="20">
             </div>
             <div class="form-group">
+                <label for="produtoImagemUrl">Imagem do Produto (automática):</label>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                    <input type="text" id="produtoImagemUrl" class="form-control" placeholder="Gerada automaticamente por nome/código" readonly style="flex:1;min-width:220px;">
+                    <button type="button" class="btn btn-secondary" onclick="gerarImagemProdutoAutomatica(true)" style="width:auto;margin-top:0;padding:10px 14px;">Gerar Imagem</button>
+                </div>
+                <small id="produtoImagemStatus" style="display:block;margin-top:6px;color:#64748b;"></small>
+                <img id="produtoImagemPreview" alt="Preview da imagem do produto" style="display:none;width:100%;max-height:180px;object-fit:cover;border-radius:10px;border:1px solid #dbe4ef;margin-top:8px;">
+            </div>
+            <div class="form-group">
                 <label for="produtoCategoria">Categoria:</label>
                 <select id="produtoCategoria" class="form-control">
                     <option value="">Selecione uma categoria</option>
@@ -1597,6 +1616,7 @@
         let ultimoEstadoServidorSerializado = '';
         let intervaloSalvarServidor = null;
         let leituraCodigoBarrasTimeout = null;
+        let imagemProdutoTimeout = null;
         const categoriasProdutoPermitidas = [
             'Bebidas Alcoolicas',
             'Bebida',
@@ -1604,6 +1624,100 @@
             'Doces',
             'Variados',
         ];
+
+        function limparCodigoBarras(codigo) {
+            return String(codigo || '').replace(/\D/g, '');
+        }
+
+        function atualizarPreviewImagemProduto(url, status) {
+            const campoUrl = document.getElementById('produtoImagemUrl');
+            const preview = document.getElementById('produtoImagemPreview');
+            const statusEl = document.getElementById('produtoImagemStatus');
+            if (!campoUrl || !preview || !statusEl) return;
+
+            if (!url) {
+                campoUrl.value = '';
+                preview.style.display = 'none';
+                preview.removeAttribute('src');
+                statusEl.textContent = status || '';
+                return;
+            }
+
+            campoUrl.value = url;
+            preview.src = url;
+            preview.style.display = 'block';
+            statusEl.textContent = status || 'Imagem vinculada ao produto';
+        }
+
+        async function buscarImagemPorCodigoBarras(codigoBarras) {
+            const codigo = limparCodigoBarras(codigoBarras);
+            if (!codigo) return '';
+
+            try {
+                const resposta = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(codigo)}.json`);
+                if (!resposta.ok) return '';
+
+                const dados = await resposta.json();
+                if (!dados || dados.status !== 1 || !dados.product) return '';
+
+                const produto = dados.product;
+                return produto.image_front_url
+                    || produto.image_url
+                    || (produto.selected_images && produto.selected_images.front && produto.selected_images.front.display
+                        ? (produto.selected_images.front.display.pt || produto.selected_images.front.display.en || '')
+                        : '');
+            } catch (erro) {
+                return '';
+            }
+        }
+
+        function montarImagemFallbackPorNome(nomeProduto) {
+            const consulta = encodeURIComponent(`${String(nomeProduto || '').trim()} produto embalagem`);
+            return consulta ? `https://source.unsplash.com/600x400/?${consulta}` : '';
+        }
+
+        async function gerarImagemProdutoAutomatica(mostrarStatus = false) {
+            const nome = String(document.getElementById('produtoNome')?.value || '').trim();
+            const codigoBarras = String(document.getElementById('produtoCodigoBarras')?.value || '').trim();
+
+            if (!nome && !codigoBarras) {
+                atualizarPreviewImagemProduto('', 'Digite nome ou código de barras para gerar imagem');
+                if (mostrarStatus) mostrarAlerta('Digite nome ou código de barras para gerar imagem', 'erro');
+                return '';
+            }
+
+            let url = '';
+            if (codigoBarras) {
+                url = await buscarImagemPorCodigoBarras(codigoBarras);
+            }
+
+            if (!url && nome) {
+                url = montarImagemFallbackPorNome(nome);
+            }
+
+            if (!url) {
+                atualizarPreviewImagemProduto('', 'Não foi possível gerar imagem para este produto');
+                if (mostrarStatus) mostrarAlerta('Não foi possível gerar imagem agora', 'erro');
+                return '';
+            }
+
+            atualizarPreviewImagemProduto(
+                url,
+                codigoBarras ? 'Imagem gerada por código/nome' : 'Imagem gerada por nome do produto'
+            );
+            if (mostrarStatus) mostrarAlerta('Imagem do produto atualizada', 'sucesso');
+            return url;
+        }
+
+        function agendarGeracaoImagemProduto() {
+            if (imagemProdutoTimeout) {
+                clearTimeout(imagemProdutoTimeout);
+            }
+
+            imagemProdutoTimeout = setTimeout(() => {
+                gerarImagemProdutoAutomatica(false);
+            }, 450);
+        }
 
         function usuarioEhAdmin() {
             return perfilLogado === 'admin';
@@ -1833,6 +1947,15 @@
             if(lastId){
                 const info = document.getElementById('lastSaleInfo');
                 if(info) info.textContent = `Última venda: #${lastId}`;
+            }
+
+            const campoNomeProduto = document.getElementById('produtoNome');
+            const campoCodigoProduto = document.getElementById('produtoCodigoBarras');
+            if (campoNomeProduto) {
+                campoNomeProduto.addEventListener('input', agendarGeracaoImagemProduto);
+            }
+            if (campoCodigoProduto) {
+                campoCodigoProduto.addEventListener('input', agendarGeracaoImagemProduto);
             }
         });
 
@@ -2067,9 +2190,13 @@
             produtosFiltrados.forEach(produto => {
                 const statusEstoque = produto.estoque <= 10 ? 'baixo' : '';
                 const disabled = produto.estoque === 0 ? 'disabled' : '';
+                const imagemProduto = produto.imagemUrl
+                    ? `<img class="produto-thumb" src="${produto.imagemUrl}" alt="Imagem de ${produto.nome}" loading="lazy" onerror="this.style.display='none'">`
+                    : '';
 
                 const html = `
                     <div class="produto-item">
+                        ${imagemProduto}
                         <div class="produto-nome">${produto.nome}</div>
                         <div class="produto-preco">R$ ${produto.preco.toFixed(2)}</div>
                         <div class="produto-estoque" style="margin-bottom: 8px; font-size: 0.82em;">
@@ -2365,6 +2492,9 @@
                 const iconStatus = produto.estoque <= 10
                     ? '<i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>'
                     : '<i class="bi bi-check-circle-fill" aria-hidden="true"></i>';
+                const imagemProduto = produto.imagemUrl
+                    ? `<img src="${produto.imagemUrl}" alt="Imagem de ${produto.nome}" loading="lazy" style="width:66px;height:66px;object-fit:cover;border-radius:8px;border:1px solid #dbe4ef;margin-right:10px;" onerror="this.style.display='none'">`
+                    : '';
 
                 const acoesAdmin = usuarioEhAdmin()
                     ? `
@@ -2378,12 +2508,15 @@
 
                 const html = `
                     <div class="estoque-item">
-                        <div>
+                        <div style="display:flex;align-items:flex-start;gap:8px;">
+                            ${imagemProduto}
+                            <div>
                             <strong>${iconStatus} ${produto.nome}</strong>
                             <div class="associado-meta"><i class="bi bi-tags" aria-hidden="true"></i> Categoria: ${produto.categoria ? produto.categoria : 'Sem categoria'}</div>
                             <div class="associado-meta"><i class="bi bi-upc-scan" aria-hidden="true"></i> Codigo: ${produto.codigoBarras ? produto.codigoBarras : 'Sem codigo'}</div>
                             <div class="associado-meta">Preco: R$ ${produto.preco.toFixed(2)}</div>
                             <div class="associado-meta">Estoque: <strong>${produto.estoque} un.</strong> ${produto.estoque <= 10 ? '<span class="estoque-status-critico">(CRITICO)</span>' : ''}</div>
+                            </div>
                         </div>
                         ${acoesAdmin}
                     </div>
@@ -2679,6 +2812,7 @@
             document.getElementById('produtoPreco').value = '';
             document.getElementById('produtoEstoque').value = '';
             document.getElementById('produtoCodigoBarras').value = '';
+            atualizarPreviewImagemProduto('', 'A imagem será gerada automaticamente');
             document.getElementById('produtoCategoria').value = '';
             document.getElementById('modalProduto').classList.add('ativo');
         }
@@ -2698,6 +2832,7 @@
             document.getElementById('produtoPreco').value = produto.preco;
             document.getElementById('produtoEstoque').value = produto.estoque;
             document.getElementById('produtoCodigoBarras').value = produto.codigoBarras || '';
+            atualizarPreviewImagemProduto(produto.imagemUrl || '', produto.imagemUrl ? 'Imagem atual do produto' : 'A imagem será gerada automaticamente');
             document.getElementById('produtoCategoria').value = categoriasProdutoPermitidas.includes(produto.categoria)
                 ? produto.categoria
                 : 'Variados';
@@ -2705,12 +2840,13 @@
         }
 
         // Salvar Produto
-        function salvarProduto() {
+        async function salvarProduto() {
             if(!usuarioEhAdmin()) return bloquearAcaoAdmin();
             const nome = document.getElementById('produtoNome').value.trim();
             const preco = parseFloat(document.getElementById('produtoPreco').value);
             const estoque = parseInt(document.getElementById('produtoEstoque').value);
             const codigoBarras = document.getElementById('produtoCodigoBarras').value.trim();
+            let imagemUrl = document.getElementById('produtoImagemUrl').value.trim();
             const categoria = document.getElementById('produtoCategoria').value;
 
             if (!nome || !preco || preco < 0 || estoque < 0) {
@@ -2728,11 +2864,16 @@
                 return;
             }
 
+            if (!imagemUrl) {
+                imagemUrl = await gerarImagemProdutoAutomatica(false);
+            }
+
             if (produtoEmEdicao) {
                 produtoEmEdicao.nome = nome;
                 produtoEmEdicao.preco = preco;
                 produtoEmEdicao.estoque = estoque;
                 produtoEmEdicao.codigoBarras = codigoBarras || undefined;
+                produtoEmEdicao.imagemUrl = imagemUrl || undefined;
                 produtoEmEdicao.categoria = categoria;
                 mostrarAlerta('Produto atualizado com sucesso', 'sucesso');
             } else {
@@ -2742,6 +2883,7 @@
                     preco: preco,
                     estoque: estoque,
                     codigoBarras: codigoBarras || undefined,
+                    imagemUrl: imagemUrl || undefined,
                     categoria: categoria
                 };
                 produtos.push(novoProduto);

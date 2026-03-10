@@ -53,12 +53,18 @@ function getPgSslConfig() {
   return { rejectUnauthorized: false };
 }
 
-const pgPool = DATABASE_URL
-  ? new Pool({
+let pgPool = null;
+if (DATABASE_URL) {
+  try {
+    pgPool = new Pool({
       connectionString: DATABASE_URL,
       ssl: getPgSslConfig(),
-    })
-  : null;
+    });
+  } catch (error) {
+    pgPool = null;
+    console.error('DATABASE_URL inválida. Inicializando sem PostgreSQL:', error.message);
+  }
+}
 
 async function ensurePgTable() {
   if (!pgPool) {

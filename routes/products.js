@@ -25,12 +25,18 @@ function getPgSslConfig() {
   return { rejectUnauthorized: false };
 }
 
-const pgPool = DATABASE_URL
-  ? new Pool({
+let pgPool = null;
+if (DATABASE_URL) {
+  try {
+    pgPool = new Pool({
       connectionString: DATABASE_URL,
       ssl: getPgSslConfig(),
-    })
-  : null;
+    });
+  } catch (error) {
+    pgPool = null;
+    console.error('DATABASE_URL invalida. Rotas de produto continuam com modo local:', error.message);
+  }
+}
 
 async function syncProductsToPg(products) {
   if (!pgPool) {
