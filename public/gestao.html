@@ -1435,7 +1435,10 @@
 
                 <!-- Aba de Estoque -->
                 <div id="visao" class="tab-content ativo">
-                    <button class="btn btn-primary" onclick="abrirModalProduto()" style="margin-bottom: 12px;"><i class="bi bi-plus-circle" aria-hidden="true"></i> Adicionar Produto</button>
+                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom: 12px;">
+                        <button class="btn btn-primary" onclick="abrirModalProduto()" style="width:auto;margin-top:0;"><i class="bi bi-plus-circle" aria-hidden="true"></i> Adicionar Produto</button>
+                        <button class="btn btn-secondary" onclick="imprimirProdutosEstoqueCritico()" style="width:auto;margin-top:0;"><i class="bi bi-printer" aria-hidden="true"></i> Imprimir Estoque <= 5</button>
+                    </div>
                     <div class="form-group" style="margin-bottom: 10px;">
                         <input type="text" id="filtroEstoqueGestao" class="form-control" placeholder="Pesquisar no estoque por nome ou codigo de barras" oninput="filtrarEstoqueGestao()">
                     </div>
@@ -2916,6 +2919,84 @@
                 `;
                 gestao.innerHTML += html;
             });
+        }
+
+        function imprimirProdutosEstoqueCritico() {
+            const produtosCriticos = produtos
+                .filter(produto => Number(produto.estoque) <= 5)
+                .sort((a, b) => Number(a.estoque) - Number(b.estoque));
+
+            if (produtosCriticos.length === 0) {
+                mostrarAlerta('Nenhum produto com estoque igual ou menor que 5', 'erro');
+                return;
+            }
+
+            const escaparHtml = (valor) => String(valor ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+
+            const linhas = produtosCriticos.map((produto, index) => `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${escaparHtml(produto.nome)}</td>
+                    <td>${escaparHtml(produto.codigoBarras || 'Sem codigo')}</td>
+                    <td>R$ ${Number(produto.preco || 0).toFixed(2)}</td>
+                    <td><strong>${Number(produto.estoque || 0)}</strong></td>
+                </tr>
+            `).join('');
+
+            const agora = new Date().toLocaleString('pt-BR');
+            const conteudo = `
+                <!DOCTYPE html>
+                <html lang="pt-BR">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Estoque Critico (<= 5)</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 24px; color: #111827; }
+                        h1 { margin: 0 0 6px 0; font-size: 20px; }
+                        p { margin: 0 0 14px 0; color: #4b5563; }
+                        table { width: 100%; border-collapse: collapse; }
+                        th, td { border: 1px solid #d1d5db; padding: 8px; font-size: 13px; text-align: left; }
+                        th { background: #f3f4f6; }
+                        tr:nth-child(even) td { background: #f9fafb; }
+                        .resumo { margin-top: 10px; font-size: 13px; font-weight: 700; }
+                    </style>
+                </head>
+                <body>
+                    <h1>Produtos com estoque <= 5 unidades</h1>
+                    <p>Gerado em: ${escaparHtml(agora)}</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Produto</th>
+                                <th>Codigo de Barras</th>
+                                <th>Preco</th>
+                                <th>Estoque</th>
+                            </tr>
+                        </thead>
+                        <tbody>${linhas}</tbody>
+                    </table>
+                    <div class="resumo">Total de itens criticos: ${produtosCriticos.length}</div>
+                </body>
+                </html>
+            `;
+
+            const janela = window.open('', '_blank', 'width=900,height=700');
+            if (!janela) {
+                mostrarAlerta('Nao foi possivel abrir a tela de impressao. Verifique o bloqueador de pop-up.', 'erro');
+                return;
+            }
+
+            janela.document.open();
+            janela.document.write(conteudo);
+            janela.document.close();
+            janela.focus();
+            janela.print();
         }
 
         // Adicionar ao Carrinho
