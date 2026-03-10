@@ -1229,34 +1229,19 @@
                 
                 <div class="alert" id="alert"></div>
                 <div id="lastSaleInfo" style="margin-top:10px; font-weight:bold;"></div>
+                <button class="btn btn-secondary" onclick="window.location.href='principal.html'" style="margin: 10px 0 10px 0; width: 100%;"><i class="bi bi-compass" aria-hidden="true"></i> Ir para Principal</button>
                 <button class="btn btn-secondary" onclick="window.location.href='gestao.html'" style="margin: 10px 0 15px 0; width: 100%;">Ir para Gestão de Estoque</button>
 
                 <div class="tabs">
-                    <button class="tab-btn ativo" data-aba="principal" onclick="trocarAba('principal', this)">Principal</button>
-                    <button class="tab-btn" data-aba="estoque" onclick="trocarAba('estoque', this)">Produtos</button>
+                    <button class="tab-btn ativo" data-aba="estoque" onclick="trocarAba('estoque', this)">Produtos</button>
                     <button class="tab-btn" data-aba="categoriaProdutos" onclick="trocarAba('categoriaProdutos', this)">Categoria dos Produtos</button>
                     <button class="tab-btn" data-aba="editarVenda" onclick="trocarAba('editarVenda', this)">Editar Venda</button>
                     <button class="tab-btn" data-aba="relatorioDiario" onclick="trocarAba('relatorioDiario', this)">Relatório Diário</button>
                 </div>
 
-                <!-- Aba Principal -->
-                <div id="principal" class="tab-content ativo">
-                    <h3>Acesso Rápido</h3>
-                    <div class="principal-grid">
-                        <button class="principal-card" onclick="abrirAtalhoVendas('estoque')">Produtos + Carrinho</button>
-                        <button class="principal-card" onclick="abrirAtalhoVendas('estoque')">Venda Rápida</button>
-                        <button class="principal-card" onclick="abrirAtalhoVendas('editarVenda')">Editar Venda</button>
-                        <button class="principal-card" onclick="window.location.href='gestao.html#fiados'">Devedores</button>
-                        <button class="principal-card" onclick="window.location.href='gestao.html#relatorio'">Relatório</button>
-                        <button class="principal-card" onclick="window.location.href='gestao.html#entrada'">Entrada de Dinheiro</button>
-                        <button id="atalhoUsuarios" class="principal-card" onclick="window.location.href='gestao.html'">Usuários</button>
-                        <button id="atalhoGestaoPagina" class="principal-card" onclick="window.location.href='gestao.html'">Abrir Página de Gestão</button>
-                    </div>
-                </div>
-
                 <div class="venda-operacao-layout">
                 <!-- Aba de Estoque -->
-                <div id="estoque" class="tab-content">
+                <div id="estoque" class="tab-content ativo">
                     <div class="form-group">
                         <input type="text" id="pesquisaProduto" placeholder="Pesquisar produto por nome ou código de barras..." onkeyup="filtrarProdutos()" style="margin-bottom: 20px;">
                     </div>
@@ -2227,7 +2212,7 @@
         // Trocar Aba
         function trocarAba(aba, btnEl) {
             if (aba === 'carrinho') aba = 'estoque';
-            document.querySelectorAll('#principal, #estoque, #carrinho, #categoriaProdutos, #editarVenda, #relatorioDiario').forEach(el => el.classList.remove('ativo'));
+            document.querySelectorAll('#estoque, #carrinho, #categoriaProdutos, #editarVenda, #relatorioDiario').forEach(el => el.classList.remove('ativo'));
             document.querySelectorAll('.panel:first-of-type .tabs .tab-btn').forEach(el => el.classList.remove('ativo'));
             document.getElementById(aba).classList.add('ativo');
             if (aba === 'estoque') {
