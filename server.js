@@ -929,6 +929,9 @@ app.get('/api/product-image', requireLogin, async (req, res) => {
 });
 
 app.get('/api/product-image-options', requireLogin, async (req, res) => {
+  const relatedRaw = Number.parseInt(String(req.query.related || ''), 10);
+  const relatedCount = Number.isFinite(relatedRaw) ? Math.max(10, Math.min(40, relatedRaw)) : 20;
+  const TOTAL_OPCOES_IMAGEM = relatedCount + 1; // 1 principal + N relacionadas
   const nome = String(req.query.nome || '').trim();
   const codigoInformado = String(req.query.codigo || '').trim();
   const codigo = normalizeCpf(codigoInformado).trim();
@@ -990,7 +993,7 @@ app.get('/api/product-image-options', requireLogin, async (req, res) => {
     });
   }
 
-  async function buscarMelhoresImagensBing(termo, termoMarca) {
+  async function buscarMelhoresImagensBing(termo, termoMarca, limite = 12) {
     const consultaBase = [String(termo || '').trim(), String(termoMarca || '').trim()].filter(Boolean).join(' ').trim();
     if (!consultaBase) return [];
 
@@ -1052,7 +1055,7 @@ app.get('/api/product-image-options', requireLogin, async (req, res) => {
     return resultados
       .sort((a, b) => b.score - a.score)
       .map((item) => item.url)
-      .slice(0, 5);
+      .slice(0, Math.max(5, limite));
   }
 
   if (codigo && codigo.length >= 8) {
@@ -1076,7 +1079,7 @@ app.get('/api/product-image-options', requireLogin, async (req, res) => {
   const termoBusca = codigoInformado || nomeBusca || marcaBusca;
   if (termoBusca || marcaBusca) {
     try {
-      const melhoresBing = await buscarMelhoresImagensBing(termoBusca, marcaBusca);
+      const melhoresBing = await buscarMelhoresImagensBing(termoBusca, marcaBusca, TOTAL_OPCOES_IMAGEM * 2);
       melhoresBing.forEach((url, idx) => adicionarOpcao(url, idx === 0 ? 'bing-first' : 'bing-related'));
     } catch (error) {
       // ignore
@@ -1085,7 +1088,8 @@ app.get('/api/product-image-options', requireLogin, async (req, res) => {
 
   if (termoBusca) {
     try {
-      const wikiUrl = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=${encodeURIComponent(`${termoBusca} ${marcaBusca} produto embalagem`)}&gsrlimit=12&prop=imageinfo&iiprop=url|mime&format=json`;
+      const wikiLimite = Math.min(50, Math.max(12, TOTAL_OPCOES_IMAGEM * 3));
+      const wikiUrl = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=${encodeURIComponent(`${termoBusca} ${marcaBusca} produto embalagem`)}&gsrlimit=${wikiLimite}&prop=imageinfo&iiprop=url|mime&format=json`;
       const resposta = await fetch(wikiUrl, { signal: AbortSignal.timeout(4500) });
       if (resposta.ok) {
         const dados = await resposta.json();
@@ -1103,11 +1107,32 @@ app.get('/api/product-image-options', requireLogin, async (req, res) => {
     }
   }
 
-  adicionarOpcao(`https://loremflickr.com/640/480/${encodeURIComponent(`${termoBusca || 'produto'} ${marcaBusca},produto,embalagem`)}`, 'loremflickr');
-  adicionarOpcao(`https://picsum.photos/seed/${encodeURIComponent(`${termoBusca || 'produto'}-${marcaBusca || 'marca'}`)}/640/480`, 'picsum');
-  adicionarOpcao(gerarSvgProdutoFallback(`${termoBusca || 'produto'} ${marcaBusca || ''}`), 'local-fallback');
+  const termoBase = `${termoBusca || 'produto'} ${marcaBusca || ''}`.trim();
+  let i = 0;
+  while (opcoes.length < TOTAL_OPCOES_IMAGEM && i < 80) {
+    adicionarOpcao(
+      `https://loremflickr.com/640/480/${encodeURIComponent(`${termoBase} produto embalagem`)}?lock=${encodeURIComponent(`${termoBase}-${i}`)}`,
+      'loremflickr',
+    );
+    adicionarOpcao(
+      `https://picsum.photos/seed/${encodeURIComponent(`${termoBase || 'produto'}-${i}`)}/640/480`,
+      'picsum',
+    );
+    i += 1;
+  }
 
-  return res.json({ options: opcoes.slice(0, 10) });
+  let j = 0;
+  while (opcoes.length < TOTAL_OPCOES_IMAGEM && j < 10) {
+    adicionarOpcao(gerarSvgProdutoFallback(`${termoBase || 'produto'} ${j + 1}`), 'local-fallback');
+    j += 1;
+  }
+
+  const selecionadas = opcoes.slice(0, TOTAL_OPCOES_IMAGEM);
+  return res.json({
+    options: selecionadas,
+    relatedRequested: relatedCount,
+    relatedFound: Math.max(0, selecionadas.length - 1),
+  });
 });
 
 app.get('/api/image-proxy', requireLogin, async (req, res) => {

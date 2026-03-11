@@ -124,19 +124,19 @@
     <h1 class="login-title text-center"><i class="bi bi-shield-lock-fill" aria-hidden="true"></i> Sistema de controle de vendas</h1>
     <p class="login-subtitle text-center">Clube dos Subtenentes e Sargentos do 11º RC MEC</p>
     <div id="loginErro" class="alert alert-danger" style="display:none; padding:8px 10px; margin-bottom:12px;"></div>
-    <form id="loginForm" method="post" action="/login">
+    <form id="loginForm" method="post" action="/login" autocomplete="off">
       <div class="mb-3">
         <label class="form-label">CPF:</label>
         <div class="field">
           <i class="bi bi-person-vcard" aria-hidden="true"></i>
-          <input type="text" name="cpf" class="form-control" required>
+          <input type="text" id="cpfInput" name="cpf" class="form-control" required autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
         </div>
       </div>
       <div class="mb-3">
         <label class="form-label">Senha:</label>
         <div class="field">
           <i class="bi bi-key" aria-hidden="true"></i>
-          <input type="password" id="senhaInput" name="senha" class="form-control" required>
+          <input type="password" id="senhaInput" name="senha" class="form-control" required autocomplete="new-password">
         </div>
       </div>
       <label class="mostrar-senha" for="mostrarSenhaInput">
@@ -152,8 +152,14 @@
     const form = document.getElementById('loginForm');
     const erroBox = document.getElementById('loginErro');
     const btnEntrar = document.getElementById('btnEntrar');
+    const cpfInput = document.getElementById('cpfInput');
     const senhaInput = document.getElementById('senhaInput');
     const mostrarSenhaInput = document.getElementById('mostrarSenhaInput');
+
+    // Limpa possíveis valores restaurados automaticamente pelo navegador.
+    form.reset();
+    cpfInput.value = '';
+    senhaInput.value = '';
 
     mostrarSenhaInput.addEventListener('change', () => {
       senhaInput.type = mostrarSenhaInput.checked ? 'text' : 'password';

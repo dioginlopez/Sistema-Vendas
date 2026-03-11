@@ -1879,6 +1879,7 @@
             if (nome) params.set('nome', nome);
             if (codigo) params.set('codigo', codigo);
             if (marca) params.set('marca', marca);
+            params.set('related', '20');
             if (!params.toString()) return [];
 
             try {
@@ -1941,7 +1942,8 @@
 
             renderizarOpcoesImagemProduto(opcoes);
             atualizarPreviewImagemProduto(String(opcoes[0].imageUrl || ''), 'Imagem relacionada aplicada automaticamente');
-            mostrarAlerta('Imagem relacionada encontrada e aplicada', 'sucesso');
+            const relacionadas = Math.max(0, opcoes.length - 1);
+            mostrarAlerta(`Imagem principal aplicada + ${relacionadas} relacionadas encontradas`, 'sucesso');
         }
 
         function usuarioEhAdmin() {
