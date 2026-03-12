@@ -296,12 +296,12 @@
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
-      window.addEventListener('offline', redirecionarParaLogin);
-
-      if (navegacaoEhRecarregamento()) {
-        redirecionarParaLogin();
-        return;
-      }
+      window.addEventListener('offline', () => {
+        const buildInfo = document.getElementById('buildInfo');
+        if (buildInfo) {
+          buildInfo.textContent = 'Conexao instavel. Tentando manter a sessao ativa.';
+        }
+      });
 
       await carregarPerfil();
       carregarVersao();

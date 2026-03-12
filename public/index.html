@@ -1427,7 +1427,25 @@
                         </div>
                         <div class="form-group" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
                             <input type="text" id="novoAssociadoNome" placeholder="Nome completo" class="form-control" style="flex:2;min-width:200px;">
-                            <input type="text" id="novoAssociadoPosto" placeholder="Posto/Graduação" class="form-control" style="flex:1;min-width:150px;">
+                            <select id="novoAssociadoPosto" class="form-control" style="flex:1;min-width:170px;" required>
+                                <option value="">Graduação Militar</option>
+                                <option value="SD">SD</option>
+                                <option value="CB">CB</option>
+                                <option value="3º SGT">3º SGT</option>
+                                <option value="2º SGT">2º SGT</option>
+                                <option value="1º SGT">1º SGT</option>
+                                <option value="ST">ST</option>
+                                <option value="TEN">TEN</option>
+                                <option value="MAJ">MAJ</option>
+                                <option value="TC">TC</option>
+                                <option value="CIVIL">CIVIL</option>
+                            </select>
+                            <select id="novoAssociadoVinculo" class="form-control" style="flex:1;min-width:170px;">
+                                <option value="">Trabalha no clube/diretoria? (opcional)</option>
+                                <option value="CLUBE">CLUBE</option>
+                                <option value="DIRETORIA">DIRETORIA</option>
+                                <option value="CLUBE E DIRETORIA">CLUBE E DIRETORIA</option>
+                            </select>
                             <input type="password" id="novoAssociadoSenha" placeholder="Senha" class="form-control" style="flex:1;min-width:150px;">
                             <input type="text" id="novoAssociadoTel" placeholder="Telefone (opcional)" class="form-control" style="flex:1;min-width:150px;">
                             <button class="btn btn-primary" onclick="adicionarAssociado()">Adicionar</button>
@@ -1671,6 +1689,14 @@
             return String(codigo || '').replace(/\D/g, '');
         }
 
+        function normalizarIdProduto(id) {
+            return String(id ?? '').trim();
+        }
+
+        function idsProdutoIguais(a, b) {
+            return normalizarIdProduto(a) === normalizarIdProduto(b);
+        }
+
         function atualizarPreviewImagemProduto(url, status) {
             const campoUrl = document.getElementById('produtoImagemUrl');
             const preview = document.getElementById('produtoImagemPreview');
@@ -1748,14 +1774,16 @@
             }
         }
 
-        async function buscarOpcoesImagemProduto(nomeProduto, codigoBarras, marcaProduto) {
+        async function buscarOpcoesImagemProduto(nomeProduto, codigoBarras, marcaProduto, categoriaProduto) {
             const params = new URLSearchParams();
             const nome = String(nomeProduto || '').trim();
             const codigo = String(codigoBarras || '').trim();
             const marca = String(marcaProduto || '').trim();
+            const categoria = String(categoriaProduto || '').trim();
             if (nome) params.set('nome', nome);
             if (codigo) params.set('codigo', codigo);
             if (marca) params.set('marca', marca);
+            if (categoria) params.set('categoria', categoria);
             params.set('related', '20');
             if (!params.toString()) return [];
 
@@ -1803,14 +1831,15 @@
             const nome = String(document.getElementById('produtoNome')?.value || '').trim();
             const codigoBarras = String(document.getElementById('produtoCodigoBarras')?.value || '').trim();
             const marca = String(document.getElementById('produtoMarca')?.value || '').trim();
-            const termo = codigoBarras || nome || marca;
+            const categoria = String(document.getElementById('produtoCategoria')?.value || '').trim();
+            const termo = codigoBarras || nome || marca || categoria;
 
             if (!termo) {
-                mostrarAlerta('Digite nome ou codigo de barras para buscar imagem', 'erro');
+                mostrarAlerta('Digite nome, marca, categoria ou codigo para buscar imagem', 'erro');
                 return;
             }
 
-            const opcoes = await buscarOpcoesImagemProduto(nome, codigoBarras, marca);
+            const opcoes = await buscarOpcoesImagemProduto(nome, codigoBarras, marca, categoria);
             if (!opcoes.length) {
                 renderizarOpcoesImagemProduto([]);
                 mostrarAlerta('Nao foi possivel encontrar imagem relacionada', 'erro');
@@ -2012,12 +2041,9 @@
 
         // Inicializar
         document.addEventListener('DOMContentLoaded', async () => {
-            window.addEventListener('offline', redirecionarParaLogin);
-
-            if (navegacaoEhRecarregamento()) {
-                redirecionarParaLogin();
-                return;
-            }
+            window.addEventListener('offline', () => {
+                mostrarAlerta('Conexao instavel. Tentando manter os dados locais sem sair da tela.', 'erro');
+            });
 
             const sessaoValida = await carregarPerfilUsuarioLogado();
             if (sessaoValida === false) {
@@ -2117,7 +2143,12 @@
                     nome.textContent = a.nome;
                     const meta = document.createElement('div');
                     meta.className = 'associado-meta';
-                    meta.textContent = `${a.posto}${a.telefone ? ` - ${a.telefone}` : ''}`;
+                    const vinculoExibicao = String(a.vinculo || 'NAO').toUpperCase();
+                    const metaParts = [a.posto, `Vinculo: ${vinculoExibicao}`].filter(Boolean);
+                    if (a.telefone) {
+                        metaParts.push(`Tel: ${a.telefone}`);
+                    }
+                    meta.textContent = metaParts.join(' | ');
                     info.appendChild(nome);
                     info.appendChild(meta);
 
@@ -2138,10 +2169,12 @@
             if(!usuarioEhAdmin()) return bloquearAcaoAdmin();
             const nome=document.getElementById('novoAssociadoNome').value.trim();
             const posto=document.getElementById('novoAssociadoPosto').value.trim();
+            const vinculoInformado=document.getElementById('novoAssociadoVinculo').value.trim().toUpperCase();
+            const vinculo=vinculoInformado || 'NAO';
             const senha=document.getElementById('novoAssociadoSenha').value;
             const telefone=document.getElementById('novoAssociadoTel').value.trim();
             if(!nome || !posto || !senha){
-                mostrarAlerta('Nome, posto e senha são obrigatórios', 'erro');
+                mostrarAlerta('Nome, graduação militar e senha são obrigatórios', 'erro');
                 return;
             }
             if(senha.length < 4){
@@ -2152,11 +2185,12 @@
                 mostrarAlerta('Associado já cadastrado', 'erro');
                 return;
             }
-            associados.push({nome,posto,senha,telefone: telefone||undefined});
+            associados.push({nome,posto,vinculo,senha,telefone: telefone||undefined});
             salvarAssociados();
             atualizarListaAssociados();
             document.getElementById('novoAssociadoNome').value='';
             document.getElementById('novoAssociadoPosto').value='';
+            document.getElementById('novoAssociadoVinculo').value='';
             document.getElementById('novoAssociadoSenha').value='';
             document.getElementById('novoAssociadoTel').value='';
         }
@@ -2345,6 +2379,7 @@
             produtosFiltrados.forEach(produto => {
                 const statusEstoque = produto.estoque <= 10 ? 'baixo' : '';
                 const disabled = produto.estoque === 0 ? 'disabled' : '';
+                const produtoIdArg = JSON.stringify(normalizarIdProduto(produto.id));
                 const imagemProduto = produto.imagemUrl
                     ? `<img class="produto-thumb" src="${produto.imagemUrl}" alt="Imagem de ${produto.nome}" loading="lazy" onerror="this.style.display='none'">`
                     : '';
@@ -2364,7 +2399,7 @@
                             Estoque: ${produto.estoque} un.
                         </div>
                         <div class="produto-botoes">
-                            <button class="btn btn-comprar" ${disabled} onclick="adicionarAoCarrinho(${produto.id})">Comprar</button>
+                            <button class="btn btn-comprar" ${disabled} onclick="adicionarAoCarrinho(${produtoIdArg})">Comprar</button>
                         </div>
                     </div>
                 `;
@@ -2649,6 +2684,7 @@
                 const iconStatus = produto.estoque <= 10
                     ? '<i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>'
                     : '<i class="bi bi-check-circle-fill" aria-hidden="true"></i>';
+                const produtoIdArg = JSON.stringify(normalizarIdProduto(produto.id));
                 const imagemProduto = produto.imagemUrl
                     ? `<img src="${produto.imagemUrl}" class="produto-thumb-mini" alt="Imagem de ${produto.nome}" loading="lazy" onerror="this.style.display='none'">`
                     : '';
@@ -2656,9 +2692,9 @@
                 const acoesAdmin = usuarioEhAdmin()
                     ? `
                         <div class="estoque-actions">
-                            <button class="btn btn-secondary estoque-action-btn" onclick="abrirModalEstoque(${produto.id})" title="Atualizar estoque" aria-label="Atualizar estoque"><i class="bi bi-box-seam" aria-hidden="true"></i></button>
-                            <button class="btn btn-editar estoque-action-btn" onclick="editarProduto(${produto.id})" title="Editar produto" aria-label="Editar produto"><i class="bi bi-pencil-square" aria-hidden="true"></i></button>
-                            <button class="btn btn-excluir estoque-action-btn" onclick="excluirProduto(${produto.id})" title="Excluir produto" aria-label="Excluir produto"><i class="bi bi-trash3" aria-hidden="true"></i></button>
+                            <button class="btn btn-secondary estoque-action-btn" onclick="abrirModalEstoque(${produtoIdArg})" title="Atualizar estoque" aria-label="Atualizar estoque"><i class="bi bi-box-seam" aria-hidden="true"></i></button>
+                            <button class="btn btn-editar estoque-action-btn" onclick="editarProduto(${produtoIdArg})" title="Editar produto" aria-label="Editar produto"><i class="bi bi-pencil-square" aria-hidden="true"></i></button>
+                            <button class="btn btn-excluir estoque-action-btn" onclick="excluirProduto(${produtoIdArg})" title="Excluir produto" aria-label="Excluir produto"><i class="bi bi-trash3" aria-hidden="true"></i></button>
                         </div>
                     `
                     : '';
@@ -2684,13 +2720,13 @@
 
         // Adicionar ao Carrinho
         function adicionarAoCarrinho(produtoId) {
-            const produto = produtos.find(p => p.id === produtoId);
-            if (!produto || produto.estoque === 0) {
+            const produto = produtos.find((p) => idsProdutoIguais(p.id, produtoId));
+            if (!produto || Number(produto.estoque || 0) === 0) {
                 mostrarAlerta('Produto não disponível', 'erro');
                 return;
             }
 
-            const itemCarrinho = carrinho.find(item => item.id === produtoId);
+            const itemCarrinho = carrinho.find((item) => idsProdutoIguais(item.id, produtoId));
             if (itemCarrinho) {
                 if (itemCarrinho.quantidade < produto.estoque) {
                     itemCarrinho.quantidade++;
@@ -2768,8 +2804,9 @@
 
             lista.innerHTML = '';
             carrinho.forEach(item => {
-                const produto = produtos.find(p => p.id === item.id);
+                const produto = produtos.find((p) => idsProdutoIguais(p.id, item.id));
                 const precoItem = item.preco * item.quantidade;
+                const itemIdArg = JSON.stringify(normalizarIdProduto(item.id));
 
                 const html = `
                     <div class="carrinho-item">
@@ -2781,11 +2818,11 @@
                         </div>
                         <div style="display: flex; gap: 10px; align-items: center;">
                             <div class="item-qtd">
-                                <button class="btn qtd-btn btn-secondary" onclick="mudarQuantidade(${item.id}, -1)">-</button>
+                                <button class="btn qtd-btn btn-secondary" onclick="mudarQuantidade(${itemIdArg}, -1)">-</button>
                                 <span class="qtd-input" style="border: none; background: transparent;">${item.quantidade}</span>
-                                <button class="btn qtd-btn btn-secondary" onclick="mudarQuantidade(${item.id}, 1)">+</button>
+                                <button class="btn qtd-btn btn-secondary" onclick="mudarQuantidade(${itemIdArg}, 1)">+</button>
                             </div>
-                            <button class="btn btn-danger" style="padding: 8px 12px;" onclick="removerDoCarrinho(${item.id})">✕</button>
+                            <button class="btn btn-danger" style="padding: 8px 12px;" onclick="removerDoCarrinho(${itemIdArg})">✕</button>
                         </div>
                     </div>
                 `;
@@ -2813,23 +2850,25 @@
 
         // Mudar Quantidade
         function mudarQuantidade(produtoId, delta) {
-            const item = carrinho.find(i => i.id === produtoId);
-            const produto = produtos.find(p => p.id === produtoId);
+            const item = carrinho.find((i) => idsProdutoIguais(i.id, produtoId));
+            const produto = produtos.find((p) => idsProdutoIguais(p.id, produtoId));
 
-            if (item) {
-                const novaQtd = item.quantidade + delta;
-                if (novaQtd > 0 && novaQtd <= produto.estoque) {
-                    item.quantidade = novaQtd;
-                } else if (novaQtd > produto.estoque) {
-                    mostrarAlerta('Quantidade em estoque insuficiente', 'erro');
-                }
-                atualizarCarrinho();
+            if (!item || !produto) {
+                return;
             }
+
+            const novaQtd = item.quantidade + delta;
+            if (novaQtd > 0 && novaQtd <= produto.estoque) {
+                item.quantidade = novaQtd;
+            } else if (novaQtd > produto.estoque) {
+                mostrarAlerta('Quantidade em estoque insuficiente', 'erro');
+            }
+            atualizarCarrinho();
         }
 
         // Remover do Carrinho
         function removerDoCarrinho(produtoId) {
-            carrinho = carrinho.filter(item => item.id !== produtoId);
+            carrinho = carrinho.filter((item) => !idsProdutoIguais(item.id, produtoId));
             atualizarCarrinho();
             mostrarAlerta('Produto removido do carrinho', 'sucesso');
         }
@@ -2889,8 +2928,12 @@
             let subtotal = 0;
             const itensVenda = [];
 
-            carrinho.forEach(item => {
-                const produto = produtos.find(p => p.id === item.id);
+            for (const item of carrinho) {
+                const produto = produtos.find((p) => idsProdutoIguais(p.id, item.id));
+                if (!produto) {
+                    mostrarAlerta('Um item do carrinho nao foi encontrado no estoque. Atualize a lista e tente novamente.', 'erro');
+                    return;
+                }
                 subtotal += item.preco * item.quantidade;
 
                 // Atualizar estoque
@@ -2901,7 +2944,7 @@
                     quantidade: item.quantidade,
                     preco: item.preco
                 });
-            });
+            }
 
             const desconto = parseFloat(document.getElementById('desconto').value) || 0;
             const valorDesconto = (subtotal * desconto) / 100;

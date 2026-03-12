@@ -1506,7 +1506,25 @@
                         </div>
                         <div class="form-group" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
                             <input type="text" id="novoAssociadoNome" placeholder="Nome completo" class="form-control" style="flex:2;min-width:200px;">
-                            <input type="text" id="novoAssociadoPosto" placeholder="Posto/Graduação" class="form-control" style="flex:1;min-width:150px;">
+                            <select id="novoAssociadoPosto" class="form-control" style="flex:1;min-width:170px;" required>
+                                <option value="">Graduação Militar</option>
+                                <option value="SD">SD</option>
+                                <option value="CB">CB</option>
+                                <option value="3º SGT">3º SGT</option>
+                                <option value="2º SGT">2º SGT</option>
+                                <option value="1º SGT">1º SGT</option>
+                                <option value="ST">ST</option>
+                                <option value="TEN">TEN</option>
+                                <option value="MAJ">MAJ</option>
+                                <option value="TC">TC</option>
+                                <option value="CIVIL">CIVIL</option>
+                            </select>
+                            <select id="novoAssociadoVinculo" class="form-control" style="flex:1;min-width:170px;">
+                                <option value="">Trabalha no clube/diretoria? (opcional)</option>
+                                <option value="CLUBE">CLUBE</option>
+                                <option value="DIRETORIA">DIRETORIA</option>
+                                <option value="CLUBE E DIRETORIA">CLUBE E DIRETORIA</option>
+                            </select>
                             <input type="password" id="novoAssociadoSenha" placeholder="Senha" class="form-control" style="flex:1;min-width:150px;">
                             <input type="text" id="novoAssociadoTel" placeholder="Telefone (opcional)" class="form-control" style="flex:1;min-width:150px;">
                             <button id="btnSalvarAssociado" class="btn btn-primary" style="width:auto;padding:10px 16px;margin-top:0;" onclick="salvarAssociadoFormulario()">Adicionar</button>
@@ -1794,6 +1812,14 @@
             return String(codigo || '').replace(/\D/g, '');
         }
 
+        function normalizarIdProduto(id) {
+            return String(id ?? '').trim();
+        }
+
+        function idsProdutoIguais(a, b) {
+            return normalizarIdProduto(a) === normalizarIdProduto(b);
+        }
+
         function atualizarPreviewImagemProduto(url, status) {
             const campoUrl = document.getElementById('produtoImagemUrl');
             const preview = document.getElementById('produtoImagemPreview');
@@ -1871,14 +1897,16 @@
             }
         }
 
-        async function buscarOpcoesImagemProduto(nomeProduto, codigoBarras, marcaProduto) {
+        async function buscarOpcoesImagemProduto(nomeProduto, codigoBarras, marcaProduto, categoriaProduto) {
             const params = new URLSearchParams();
             const nome = String(nomeProduto || '').trim();
             const codigo = String(codigoBarras || '').trim();
             const marca = String(marcaProduto || '').trim();
+            const categoria = String(categoriaProduto || '').trim();
             if (nome) params.set('nome', nome);
             if (codigo) params.set('codigo', codigo);
             if (marca) params.set('marca', marca);
+            if (categoria) params.set('categoria', categoria);
             params.set('related', '20');
             if (!params.toString()) return [];
 
@@ -1926,14 +1954,15 @@
             const nome = String(document.getElementById('produtoNome')?.value || '').trim();
             const codigoBarras = String(document.getElementById('produtoCodigoBarras')?.value || '').trim();
             const marca = String(document.getElementById('produtoMarca')?.value || '').trim();
-            const termo = codigoBarras || nome || marca;
+            const categoria = String(document.getElementById('produtoCategoria')?.value || '').trim();
+            const termo = codigoBarras || nome || marca || categoria;
 
             if (!termo) {
-                mostrarAlerta('Digite nome ou codigo de barras para buscar imagem', 'erro');
+                mostrarAlerta('Digite nome, marca, categoria ou codigo para buscar imagem', 'erro');
                 return;
             }
 
-            const opcoes = await buscarOpcoesImagemProduto(nome, codigoBarras, marca);
+            const opcoes = await buscarOpcoesImagemProduto(nome, codigoBarras, marca, categoria);
             if (!opcoes.length) {
                 renderizarOpcoesImagemProduto([]);
                 mostrarAlerta('Nao foi possivel encontrar imagem relacionada', 'erro');
@@ -2171,12 +2200,9 @@
 
         // Inicializar
         document.addEventListener('DOMContentLoaded', async () => {
-            window.addEventListener('offline', redirecionarParaLogin);
-
-            if (navegacaoEhRecarregamento()) {
-                redirecionarParaLogin();
-                return;
-            }
+            window.addEventListener('offline', () => {
+                mostrarAlerta('Conexao instavel. Tentando manter os dados locais sem sair da tela.', 'erro');
+            });
 
             const sessaoValida = await carregarPerfilUsuarioLogado();
             if (sessaoValida === false) {
@@ -2291,7 +2317,12 @@
                     nome.textContent = `${nomeFormatado} (${postoFormatado})`;
                     const meta = document.createElement('div');
                     meta.className = 'associado-meta';
-                    meta.textContent = a.telefone ? `Tel: ${a.telefone}` : '';
+                    const vinculoExibicao = String(a.vinculo || 'NAO').toUpperCase();
+                    const metaParts = [`Vinculo: ${vinculoExibicao}`];
+                    if (a.telefone) {
+                        metaParts.push(`Tel: ${a.telefone}`);
+                    }
+                    meta.textContent = metaParts.join(' | ');
                     info.appendChild(nome);
                     info.appendChild(meta);
 
@@ -2325,6 +2356,7 @@
         function limparFormularioAssociado(){
             document.getElementById('novoAssociadoNome').value='';
             document.getElementById('novoAssociadoPosto').value='';
+            document.getElementById('novoAssociadoVinculo').value='';
             document.getElementById('novoAssociadoSenha').value='';
             document.getElementById('novoAssociadoTel').value='';
         }
@@ -2335,6 +2367,9 @@
             if(!associado) return;
             document.getElementById('novoAssociadoNome').value = (associado.nome || '').toUpperCase();
             document.getElementById('novoAssociadoPosto').value = (associado.posto || '').toUpperCase();
+            document.getElementById('novoAssociadoVinculo').value = String(associado.vinculo || 'NAO').toUpperCase() === 'NAO'
+                ? ''
+                : String(associado.vinculo || '').toUpperCase();
             document.getElementById('novoAssociadoSenha').value = '';
             document.getElementById('novoAssociadoTel').value = associado.telefone || '';
             document.getElementById('btnSalvarAssociado').textContent = 'Salvar edição';
@@ -2355,17 +2390,19 @@
             if(!usuarioEhAdmin()) return bloquearAcaoAdmin();
             const nome=document.getElementById('novoAssociadoNome').value.trim().toUpperCase();
             const posto=document.getElementById('novoAssociadoPosto').value.trim().toUpperCase();
+            const vinculoInformado = document.getElementById('novoAssociadoVinculo').value.trim().toUpperCase();
+            const vinculo = vinculoInformado || 'NAO';
             let senha=document.getElementById('novoAssociadoSenha').value;
             const telefone=document.getElementById('novoAssociadoTel').value.trim();
             const editando = associadoEmEdicao !== null;
 
             if(!nome || !posto){
-                mostrarAlerta('Nome e posto são obrigatórios', 'erro');
+                mostrarAlerta('Nome e graduação militar são obrigatórios', 'erro');
                 return;
             }
 
             if(!editando && !senha){
-                mostrarAlerta('Nome, posto e senha são obrigatórios', 'erro');
+                mostrarAlerta('Nome, graduação militar e senha são obrigatórios', 'erro');
                 return;
             }
 
@@ -2387,11 +2424,12 @@
                 associados[associadoEmEdicao] = {
                     nome,
                     posto,
+                    vinculo,
                     senha,
                     telefone: telefone || undefined
                 };
             } else {
-                associados.push({nome,posto,senha,telefone: telefone||undefined});
+                associados.push({nome,posto,vinculo,senha,telefone: telefone||undefined});
             }
 
             salvarAssociados();
@@ -2853,6 +2891,7 @@
             produtosFiltrados.forEach(produto => {
                 const statusEstoque = produto.estoque <= 10 ? 'baixo' : '';
                 const disabled = produto.estoque === 0 ? 'disabled' : '';
+                const produtoIdArg = JSON.stringify(normalizarIdProduto(produto.id));
                 const imagemProduto = produto.imagemUrl
                     ? `<img class="produto-thumb" src="${produto.imagemUrl}" alt="Imagem de ${produto.nome}" loading="lazy" onerror="this.style.display='none'">`
                     : '';
@@ -2869,7 +2908,7 @@
                             Estoque: ${produto.estoque} un.
                         </div>
                         <div class="produto-botoes">
-                            <button class="btn btn-comprar" ${disabled} onclick="adicionarAoCarrinho(${produto.id})">Comprar</button>
+                            <button class="btn btn-comprar" ${disabled} onclick="adicionarAoCarrinho(${produtoIdArg})">Comprar</button>
                         </div>
                     </div>
                 `;
@@ -2914,6 +2953,7 @@
                 const iconStatus = produto.estoque <= 10
                     ? '<i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>'
                     : '<i class="bi bi-check-circle-fill" aria-hidden="true"></i>';
+                const produtoIdArg = JSON.stringify(normalizarIdProduto(produto.id));
                 const imagemProduto = produto.imagemUrl
                     ? `<img src="${produto.imagemUrl}" class="produto-thumb-mini" alt="Imagem de ${produto.nome}" loading="lazy" onerror="this.style.display='none'">`
                     : '';
@@ -2921,9 +2961,9 @@
                 const acoesAdmin = usuarioEhAdmin()
                     ? `
                         <div class="estoque-actions">
-                            <button class="btn btn-secondary estoque-action-btn" onclick="abrirModalEstoque(${produto.id})" title="Atualizar estoque" aria-label="Atualizar estoque"><i class="bi bi-box-seam" aria-hidden="true"></i></button>
-                            <button class="btn btn-editar estoque-action-btn" onclick="editarProduto(${produto.id})" title="Editar produto" aria-label="Editar produto"><i class="bi bi-pencil-square" aria-hidden="true"></i></button>
-                            <button class="btn btn-excluir estoque-action-btn" onclick="excluirProduto(${produto.id})" title="Excluir produto" aria-label="Excluir produto"><i class="bi bi-trash3" aria-hidden="true"></i></button>
+                            <button class="btn btn-secondary estoque-action-btn" onclick="abrirModalEstoque(${produtoIdArg})" title="Atualizar estoque" aria-label="Atualizar estoque"><i class="bi bi-box-seam" aria-hidden="true"></i></button>
+                            <button class="btn btn-editar estoque-action-btn" onclick="editarProduto(${produtoIdArg})" title="Editar produto" aria-label="Editar produto"><i class="bi bi-pencil-square" aria-hidden="true"></i></button>
+                            <button class="btn btn-excluir estoque-action-btn" onclick="excluirProduto(${produtoIdArg})" title="Excluir produto" aria-label="Excluir produto"><i class="bi bi-trash3" aria-hidden="true"></i></button>
                         </div>
                     `
                     : '';
@@ -2949,7 +2989,21 @@
         function imprimirProdutosEstoqueCritico() {
             const produtosCriticos = produtos
                 .filter(produto => Number(produto.estoque) <= 10)
-                .sort((a, b) => Number(a.estoque) - Number(b.estoque));
+                .sort((a, b) => {
+                    const categoriaA = String(a.categoria || 'Sem categoria').toLowerCase();
+                    const categoriaB = String(b.categoria || 'Sem categoria').toLowerCase();
+                    if (categoriaA !== categoriaB) {
+                        return categoriaA.localeCompare(categoriaB, 'pt-BR');
+                    }
+
+                    const estoqueA = Number(a.estoque || 0);
+                    const estoqueB = Number(b.estoque || 0);
+                    if (estoqueA !== estoqueB) {
+                        return estoqueA - estoqueB;
+                    }
+
+                    return String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR');
+                });
 
             if (produtosCriticos.length === 0) {
                 mostrarAlerta('Nenhum produto em estoque critico (igual ou menor que 10)', 'erro');
@@ -2963,15 +3017,48 @@
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#39;');
 
-            const linhas = produtosCriticos.map((produto, index) => `
-                <tr>
-                    <td>${index + 1}</td>
-                    <td>${escaparHtml(produto.nome)}</td>
-                    <td>${escaparHtml(produto.codigoBarras || 'Sem codigo')}</td>
-                    <td>R$ ${Number(produto.preco || 0).toFixed(2)}</td>
-                    <td><strong>${Number(produto.estoque || 0)}</strong></td>
-                </tr>
-            `).join('');
+            const gruposPorCategoria = produtosCriticos.reduce((acc, produto) => {
+                const categoria = String(produto.categoria || '').trim() || 'Sem categoria';
+                if (!acc[categoria]) {
+                    acc[categoria] = [];
+                }
+                acc[categoria].push(produto);
+                return acc;
+            }, {});
+
+            const categoriasOrdenadas = Object.keys(gruposPorCategoria)
+                .sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
+            const secoesCategoria = categoriasOrdenadas.map((categoria) => {
+                const itens = gruposPorCategoria[categoria];
+                const linhasCategoria = itens.map((produto, index) => `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${escaparHtml(produto.nome)}</td>
+                        <td>${escaparHtml(produto.codigoBarras || 'Sem codigo')}</td>
+                        <td>R$ ${Number(produto.preco || 0).toFixed(2)}</td>
+                        <td><strong>${Number(produto.estoque || 0)}</strong></td>
+                    </tr>
+                `).join('');
+
+                return `
+                    <section class="categoria-bloco">
+                        <h2>${escaparHtml(categoria)} (${itens.length})</h2>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Produto</th>
+                                    <th>Codigo de Barras</th>
+                                    <th>Preco</th>
+                                    <th>Estoque</th>
+                                </tr>
+                            </thead>
+                            <tbody>${linhasCategoria}</tbody>
+                        </table>
+                    </section>
+                `;
+            }).join('');
 
             const agora = new Date().toLocaleString('pt-BR');
             const conteudo = `
@@ -2983,29 +3070,20 @@
                     <style>
                         body { font-family: Arial, sans-serif; margin: 24px; color: #111827; }
                         h1 { margin: 0 0 6px 0; font-size: 20px; }
+                        h2 { margin: 16px 0 8px 0; font-size: 16px; }
                         p { margin: 0 0 14px 0; color: #4b5563; }
                         table { width: 100%; border-collapse: collapse; }
                         th, td { border: 1px solid #d1d5db; padding: 8px; font-size: 13px; text-align: left; }
                         th { background: #f3f4f6; }
                         tr:nth-child(even) td { background: #f9fafb; }
+                        .categoria-bloco { margin-bottom: 14px; page-break-inside: avoid; }
                         .resumo { margin-top: 10px; font-size: 13px; font-weight: 700; }
                     </style>
                 </head>
                 <body>
                     <h1>Produtos com estoque critico (<= 10 unidades)</h1>
                     <p>Gerado em: ${escaparHtml(agora)}</p>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Produto</th>
-                                <th>Codigo de Barras</th>
-                                <th>Preco</th>
-                                <th>Estoque</th>
-                            </tr>
-                        </thead>
-                        <tbody>${linhas}</tbody>
-                    </table>
+                    ${secoesCategoria}
                     <div class="resumo">Total de itens criticos: ${produtosCriticos.length}</div>
                 </body>
                 </html>
@@ -3026,13 +3104,13 @@
 
         // Adicionar ao Carrinho
         function adicionarAoCarrinho(produtoId) {
-            const produto = produtos.find(p => p.id === produtoId);
-            if (!produto || produto.estoque === 0) {
+            const produto = produtos.find((p) => idsProdutoIguais(p.id, produtoId));
+            if (!produto || Number(produto.estoque || 0) === 0) {
                 mostrarAlerta('Produto não disponível', 'erro');
                 return;
             }
 
-            const itemCarrinho = carrinho.find(item => item.id === produtoId);
+            const itemCarrinho = carrinho.find((item) => idsProdutoIguais(item.id, produtoId));
             if (itemCarrinho) {
                 if (itemCarrinho.quantidade < produto.estoque) {
                     itemCarrinho.quantidade++;
@@ -3090,8 +3168,9 @@
 
             lista.innerHTML = '';
             carrinho.forEach(item => {
-                const produto = produtos.find(p => p.id === item.id);
+                const produto = produtos.find((p) => idsProdutoIguais(p.id, item.id));
                 const precoItem = item.preco * item.quantidade;
+                const itemIdArg = JSON.stringify(normalizarIdProduto(item.id));
 
                 const html = `
                     <div class="carrinho-item">
@@ -3103,11 +3182,11 @@
                         </div>
                         <div style="display: flex; gap: 10px; align-items: center;">
                             <div class="item-qtd">
-                                <button class="btn qtd-btn btn-secondary" onclick="mudarQuantidade(${item.id}, -1)">-</button>
+                                <button class="btn qtd-btn btn-secondary" onclick="mudarQuantidade(${itemIdArg}, -1)">-</button>
                                 <span class="qtd-input" style="border: none; background: transparent;">${item.quantidade}</span>
-                                <button class="btn qtd-btn btn-secondary" onclick="mudarQuantidade(${item.id}, 1)">+</button>
+                                <button class="btn qtd-btn btn-secondary" onclick="mudarQuantidade(${itemIdArg}, 1)">+</button>
                             </div>
-                            <button class="btn btn-danger" style="padding: 8px 12px;" onclick="removerDoCarrinho(${item.id})">✕</button>
+                            <button class="btn btn-danger" style="padding: 8px 12px;" onclick="removerDoCarrinho(${itemIdArg})">✕</button>
                         </div>
                     </div>
                 `;
@@ -3135,23 +3214,25 @@
 
         // Mudar Quantidade
         function mudarQuantidade(produtoId, delta) {
-            const item = carrinho.find(i => i.id === produtoId);
-            const produto = produtos.find(p => p.id === produtoId);
+            const item = carrinho.find((i) => idsProdutoIguais(i.id, produtoId));
+            const produto = produtos.find((p) => idsProdutoIguais(p.id, produtoId));
 
-            if (item) {
-                const novaQtd = item.quantidade + delta;
-                if (novaQtd > 0 && novaQtd <= produto.estoque) {
-                    item.quantidade = novaQtd;
-                } else if (novaQtd > produto.estoque) {
-                    mostrarAlerta('Quantidade em estoque insuficiente', 'erro');
-                }
-                atualizarCarrinho();
+            if (!item || !produto) {
+                return;
             }
+
+            const novaQtd = item.quantidade + delta;
+            if (novaQtd > 0 && novaQtd <= produto.estoque) {
+                item.quantidade = novaQtd;
+            } else if (novaQtd > produto.estoque) {
+                mostrarAlerta('Quantidade em estoque insuficiente', 'erro');
+            }
+            atualizarCarrinho();
         }
 
         // Remover do Carrinho
         function removerDoCarrinho(produtoId) {
-            carrinho = carrinho.filter(item => item.id !== produtoId);
+            carrinho = carrinho.filter((item) => !idsProdutoIguais(item.id, produtoId));
             atualizarCarrinho();
             mostrarAlerta('Produto removido do carrinho', 'sucesso');
         }
@@ -3211,8 +3292,12 @@
             let subtotal = 0;
             const itensVenda = [];
 
-            carrinho.forEach(item => {
-                const produto = produtos.find(p => p.id === item.id);
+            for (const item of carrinho) {
+                const produto = produtos.find((p) => idsProdutoIguais(p.id, item.id));
+                if (!produto) {
+                    mostrarAlerta('Um item do carrinho nao foi encontrado no estoque. Atualize a lista e tente novamente.', 'erro');
+                    return;
+                }
                 subtotal += item.preco * item.quantidade;
 
                 // Atualizar estoque
@@ -3223,7 +3308,7 @@
                     quantidade: item.quantidade,
                     preco: item.preco
                 });
-            });
+            }
 
             const desconto = parseFloat(document.getElementById('desconto').value) || 0;
             const valorDesconto = (subtotal * desconto) / 100;
@@ -4073,31 +4158,103 @@
 
         // Exportar Dados
         function exportarDados() {
-            let texto = 'RELATÓRIO DE VENDAS\n';
-            texto += '==================\n\n';
+            const filtroNomeBruto = (document.getElementById('filtroRelatorioNome')?.value || '').trim();
+            const filtroNome = filtroNomeBruto.toLowerCase();
+            const filtroStatus = document.getElementById('filtroRelatorioStatus')?.value || 'todos';
+            const filtroDataInicio = document.getElementById('filtroRelatorioDataInicio')?.value || '';
+            const filtroDataFim = document.getElementById('filtroRelatorioDataFim')?.value || '';
 
-            vendas.forEach(venda => {
-                texto += `Data: ${venda.data}\n`;
-                texto += 'Itens:\n';
-                venda.itens.forEach(item => {
-                    texto += `  ${item.quantidade}× ${item.nome} @ R$ ${item.preco.toFixed(2)} = R$ ${(item.quantidade * item.preco).toFixed(2)}\n`;
-                });
-                texto += `Subtotal: R$ ${venda.subtotal.toFixed(2)}\n`;
-                if (venda.desconto > 0) {
-                    texto += `Desconto: ${venda.desconto}% (-R$ ${venda.valorDesconto.toFixed(2)})\n`;
-                }
-                texto += `TOTAL: R$ ${venda.total.toFixed(2)}\n`;
-                texto += '---\n\n';
+            const vendasFiltradas = vendas.filter((venda) => {
+                const nomeCliente = String(venda.cliente || '').toLowerCase();
+                const dataISO = obterDataVendaISO(venda);
+
+                const filtroNomeOk = !filtroNome || nomeCliente.includes(filtroNome);
+                const filtroStatusOk = filtroStatus === 'todos' || (filtroStatus === 'pago' && !venda.fiado) || (filtroStatus === 'fiado' && venda.fiado);
+                const filtroDataInicioOk = !filtroDataInicio || (dataISO && dataISO >= filtroDataInicio);
+                const filtroDataFimOk = !filtroDataFim || (dataISO && dataISO <= filtroDataFim);
+
+                return filtroNomeOk && filtroStatusOk && filtroDataInicioOk && filtroDataFimOk;
             });
 
-            const blob = new Blob([texto], { type: 'text/plain' });
+            if (vendasFiltradas.length === 0) {
+                mostrarAlerta('Nenhuma venda encontrada para exportar com os filtros informados', 'erro');
+                return;
+            }
+
+            const vendasPorCliente = {};
+            vendasFiltradas.forEach((venda) => {
+                const cliente = String(venda.cliente || 'Cliente nao identificado').trim() || 'Cliente nao identificado';
+                if (!vendasPorCliente[cliente]) {
+                    vendasPorCliente[cliente] = [];
+                }
+                vendasPorCliente[cliente].push(venda);
+            });
+
+            const clientesOrdenados = Object.keys(vendasPorCliente).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+            const dataGeracao = new Date().toLocaleString('pt-BR');
+            const periodoTexto = `${filtroDataInicio || 'inicio'} a ${filtroDataFim || 'hoje'}`;
+            const statusTexto = filtroStatus === 'todos' ? 'Todos' : (filtroStatus === 'fiado' ? 'Fiado' : 'Pago');
+
+            let texto = 'NOTA DE COMPRA - EXPORTACAO\n';
+            texto += '============================\n';
+            texto += `Gerado em: ${dataGeracao}\n`;
+            texto += `Filtro nome: ${filtroNomeBruto || 'Todos'}\n`;
+            texto += `Filtro status: ${statusTexto}\n`;
+            texto += `Filtro periodo: ${periodoTexto}\n`;
+            texto += `Quantidade de vendas: ${vendasFiltradas.length}\n\n`;
+
+            clientesOrdenados.forEach((cliente, idxCliente) => {
+                const vendasCliente = vendasPorCliente[cliente];
+                const totalCliente = vendasCliente.reduce((acc, venda) => acc + Number(venda.total || 0), 0);
+
+                texto += `CLIENTE: ${cliente}\n`;
+                texto += `Compras no filtro: ${vendasCliente.length}\n`;
+                texto += `Total do cliente: R$ ${totalCliente.toFixed(2)}\n`;
+                texto += '----------------------------------------\n';
+
+                vendasCliente.forEach((venda, indexVenda) => {
+                    texto += `Compra ${indexVenda + 1}\n`;
+                    texto += `Data: ${venda.data || 'Nao informada'}\n`;
+                    texto += `Pagamento: ${venda.fiado ? 'Fiado' : (venda.metodoPagamento || 'Nao informado')}\n`;
+                    texto += 'Itens:\n';
+
+                    (Array.isArray(venda.itens) ? venda.itens : []).forEach((item) => {
+                        const quantidade = Number(item.quantidade || 0);
+                        const preco = Number(item.preco || 0);
+                        const totalItem = quantidade * preco;
+                        texto += `  ${quantidade}x ${item.nome} @ R$ ${preco.toFixed(2)} = R$ ${totalItem.toFixed(2)}\n`;
+                    });
+
+                    texto += `Subtotal: R$ ${Number(venda.subtotal || 0).toFixed(2)}\n`;
+                    if (Number(venda.desconto || 0) > 0) {
+                        texto += `Desconto: ${Number(venda.desconto || 0).toFixed(2)}% (-R$ ${Number(venda.valorDesconto || 0).toFixed(2)})\n`;
+                    }
+                    texto += `TOTAL DA COMPRA: R$ ${Number(venda.total || 0).toFixed(2)}\n`;
+                    texto += '\n';
+                });
+
+                if (idxCliente < clientesOrdenados.length - 1) {
+                    texto += '========================================\n\n';
+                }
+            });
+
+            const totalGeral = vendasFiltradas.reduce((acc, venda) => acc + Number(venda.total || 0), 0);
+            texto += `\nTOTAL GERAL NO FILTRO: R$ ${totalGeral.toFixed(2)}\n`;
+
+            const blob = new Blob([texto], { type: 'text/plain;charset=utf-8' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `relatorio_vendas_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.txt`;
+            const nomeArquivoCliente = (filtroNomeBruto || 'todos_clientes')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-zA-Z0-9]+/g, '_')
+                .replace(/^_+|_+$/g, '')
+                .toLowerCase() || 'todos_clientes';
+            a.download = `nota_compra_${nomeArquivoCliente}_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.txt`;
             a.click();
             window.URL.revokeObjectURL(url);
-            mostrarAlerta('Relatório exportado com sucesso', 'sucesso');
+            mostrarAlerta('Nota de compra exportada com sucesso', 'sucesso');
         }
 
         function exportarBackupCompleto() {
