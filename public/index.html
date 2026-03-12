@@ -1444,7 +1444,6 @@
                                 <option value="">Trabalha no clube/diretoria? (opcional)</option>
                                 <option value="CLUBE">CLUBE</option>
                                 <option value="DIRETORIA">DIRETORIA</option>
-                                <option value="CLUBE E DIRETORIA">CLUBE E DIRETORIA</option>
                             </select>
                             <input type="password" id="novoAssociadoSenha" placeholder="Senha" class="form-control" style="flex:1;min-width:150px;">
                             <input type="text" id="novoAssociadoTel" placeholder="Telefone (opcional)" class="form-control" style="flex:1;min-width:150px;">
@@ -2144,7 +2143,8 @@
                     const meta = document.createElement('div');
                     meta.className = 'associado-meta';
                     const vinculoExibicao = String(a.vinculo || 'NAO').toUpperCase();
-                    const metaParts = [a.posto, `Vinculo: ${vinculoExibicao}`].filter(Boolean);
+                    const graduacaoExibicao = String(a.posto || '').toUpperCase();
+                    const metaParts = [`Graduacao: ${graduacaoExibicao}`, `Vinculo: ${vinculoExibicao}`].filter(Boolean);
                     if (a.telefone) {
                         metaParts.push(`Tel: ${a.telefone}`);
                     }
@@ -3029,7 +3029,11 @@
         // Editar Produto
         function editarProduto(produtoId) {
             if(!usuarioEhAdmin()) return bloquearAcaoAdmin();
-            const produto = produtos.find(p => p.id === produtoId);
+            const produto = produtos.find((p) => idsProdutoIguais(p.id, produtoId));
+            if (!produto) {
+                mostrarAlerta('Produto não encontrado', 'erro');
+                return;
+            }
             produtoEmEdicao = produto;
             document.getElementById('modalTitulo').textContent = 'Editar Produto';
             document.getElementById('produtoNome').value = produto.nome;
@@ -3107,8 +3111,8 @@
         function excluirProduto(produtoId) {
             if(!usuarioEhAdmin()) return bloquearAcaoAdmin();
             if (confirm('Tem certeza que deseja excluir este produto?')) {
-                produtos = produtos.filter(p => p.id !== produtoId);
-                carrinho = carrinho.filter(i => i.id !== produtoId);
+                produtos = produtos.filter((p) => !idsProdutoIguais(p.id, produtoId));
+                carrinho = carrinho.filter((i) => !idsProdutoIguais(i.id, produtoId));
                 salvarProdutos();
                 atualizarListaProdutos();
                 atualizarCarrinho();
@@ -3120,7 +3124,11 @@
         // Modal de Estoque
         function abrirModalEstoque(produtoId) {
             if(!usuarioEhAdmin()) return bloquearAcaoAdmin();
-            const produto = produtos.find(p => p.id === produtoId);
+            const produto = produtos.find((p) => idsProdutoIguais(p.id, produtoId));
+            if (!produto) {
+                mostrarAlerta('Produto não encontrado', 'erro');
+                return;
+            }
             produtoEmEdicao = produto;
             document.getElementById('estoqueNome').value = produto.nome;
             document.getElementById('estoqueQuantidade').value = produto.estoque;
