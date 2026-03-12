@@ -2890,7 +2890,7 @@
             produtosFiltrados.forEach(produto => {
                 const statusEstoque = produto.estoque <= 10 ? 'baixo' : '';
                 const disabled = produto.estoque === 0 ? 'disabled' : '';
-                const produtoIdArg = JSON.stringify(normalizarIdProduto(produto.id));
+                const produtoIdArg = normalizarIdProduto(produto.id).replace(/'/g, "\\'");
                 const imagemProduto = produto.imagemUrl
                     ? `<img class="produto-thumb" src="${produto.imagemUrl}" alt="Imagem de ${produto.nome}" loading="lazy" onerror="this.style.display='none'">`
                     : '';
@@ -2907,7 +2907,7 @@
                             Estoque: ${produto.estoque} un.
                         </div>
                         <div class="produto-botoes">
-                            <button class="btn btn-comprar" ${disabled} onclick="adicionarAoCarrinho(${produtoIdArg})">Comprar</button>
+                            <button class="btn btn-comprar" ${disabled} onclick="adicionarAoCarrinho('${produtoIdArg}')">Comprar</button>
                         </div>
                     </div>
                 `;
@@ -2952,7 +2952,7 @@
                 const iconStatus = produto.estoque <= 10
                     ? '<i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>'
                     : '<i class="bi bi-check-circle-fill" aria-hidden="true"></i>';
-                const produtoIdArg = JSON.stringify(normalizarIdProduto(produto.id));
+                const produtoIdArg = normalizarIdProduto(produto.id).replace(/'/g, "\\'");
                 const imagemProduto = produto.imagemUrl
                     ? `<img src="${produto.imagemUrl}" class="produto-thumb-mini" alt="Imagem de ${produto.nome}" loading="lazy" onerror="this.style.display='none'">`
                     : '';
@@ -2960,9 +2960,9 @@
                 const acoesAdmin = usuarioEhAdmin()
                     ? `
                         <div class="estoque-actions">
-                            <button class="btn btn-secondary estoque-action-btn" onclick="abrirModalEstoque(${produtoIdArg})" title="Atualizar estoque" aria-label="Atualizar estoque"><i class="bi bi-box-seam" aria-hidden="true"></i></button>
-                            <button class="btn btn-editar estoque-action-btn" onclick="editarProduto(${produtoIdArg})" title="Editar produto" aria-label="Editar produto"><i class="bi bi-pencil-square" aria-hidden="true"></i></button>
-                            <button class="btn btn-excluir estoque-action-btn" onclick="excluirProduto(${produtoIdArg})" title="Excluir produto" aria-label="Excluir produto"><i class="bi bi-trash3" aria-hidden="true"></i></button>
+                            <button class="btn btn-secondary estoque-action-btn" onclick="abrirModalEstoque('${produtoIdArg}')" title="Atualizar estoque" aria-label="Atualizar estoque"><i class="bi bi-box-seam" aria-hidden="true"></i></button>
+                            <button class="btn btn-editar estoque-action-btn" onclick="editarProduto('${produtoIdArg}')" title="Editar produto" aria-label="Editar produto"><i class="bi bi-pencil-square" aria-hidden="true"></i></button>
+                            <button class="btn btn-excluir estoque-action-btn" onclick="excluirProduto('${produtoIdArg}')" title="Excluir produto" aria-label="Excluir produto"><i class="bi bi-trash3" aria-hidden="true"></i></button>
                         </div>
                     `
                     : '';
@@ -3169,7 +3169,7 @@
             carrinho.forEach(item => {
                 const produto = produtos.find((p) => idsProdutoIguais(p.id, item.id));
                 const precoItem = item.preco * item.quantidade;
-                const itemIdArg = JSON.stringify(normalizarIdProduto(item.id));
+                const itemIdArg = normalizarIdProduto(item.id).replace(/'/g, "\\'");
 
                 const html = `
                     <div class="carrinho-item">
@@ -3181,11 +3181,11 @@
                         </div>
                         <div style="display: flex; gap: 10px; align-items: center;">
                             <div class="item-qtd">
-                                <button class="btn qtd-btn btn-secondary" onclick="mudarQuantidade(${itemIdArg}, -1)">-</button>
+                                <button class="btn qtd-btn btn-secondary" onclick="mudarQuantidade('${itemIdArg}', -1)">-</button>
                                 <span class="qtd-input" style="border: none; background: transparent;">${item.quantidade}</span>
-                                <button class="btn qtd-btn btn-secondary" onclick="mudarQuantidade(${itemIdArg}, 1)">+</button>
+                                <button class="btn qtd-btn btn-secondary" onclick="mudarQuantidade('${itemIdArg}', 1)">+</button>
                             </div>
-                            <button class="btn btn-danger" style="padding: 8px 12px;" onclick="removerDoCarrinho(${itemIdArg})">✕</button>
+                            <button class="btn btn-danger" style="padding: 8px 12px;" onclick="removerDoCarrinho('${itemIdArg}')">✕</button>
                         </div>
                     </div>
                 `;
@@ -3942,7 +3942,13 @@
         // Exportar Planilha de Devedores (CSV)
         function exportarPlanilhaDevedores() {
             if(!usuarioEhAdmin()) return bloquearAcaoAdmin();
-            const vendasFiadas = vendas.filter(v => v.fiado);
+            const filtroMesEl = document.getElementById('filtroMesRecebimentos');
+            const mesSelecionado = filtroMesEl ? (filtroMesEl.value || 'todos') : 'todos';
+            const vendasFiadas = vendas.filter((v) => {
+                if (!v.fiado) return false;
+                if (mesSelecionado === 'todos') return true;
+                return extrairMesAnoRecebimentos(v.data).chave === mesSelecionado;
+            });
 
             if (vendasFiadas.length === 0) {
                 mostrarAlerta('Nenhum devedor para exportar', 'erro');
@@ -3966,10 +3972,21 @@
             vendasFiadas.forEach(venda => {
                 const dataVenda = extrairDataSemHora(venda.data);
                 const dataVendaNum = converterDataBrParaNumero(venda.data);
+                const nomeBase = String(venda.cliente || '').replace(/\s*\([^)]*\)\s*$/, '').trim().toUpperCase();
+                const associado = associados.find((a) => String(a.nome || '').trim().toUpperCase() === nomeBase);
+                const graduacao = String(associado && associado.posto ? associado.posto : '').trim().toUpperCase();
+                const vinculo = String(associado && associado.vinculo ? associado.vinculo : 'NAO').trim().toUpperCase() || 'NAO';
+                const vinculoTemClube = vinculo.includes('CLUBE');
+                const mensalidade = vinculoTemClube
+                    ? 0
+                    : (graduacao === 'CIVIL' ? 50 : 30);
 
                 if (!devedores[venda.cliente]) {
                     devedores[venda.cliente] = {
                         cliente: venda.cliente,
+                        graduacao: graduacao || 'NAO INFORMADA',
+                        vinculo,
+                        mensalidade,
                         quantidadeCompras: 0,
                         totalDevendo: 0,
                         primeiraCompra: dataVenda,
@@ -4001,9 +4018,13 @@
             const linhas = [];
             linhas.push([
                 'Posicao',
-                'Cliente',
+                'Associado',
+                'Graduacao',
+                'Vinculo',
+                'Mensalidade',
                 'Qtd_Compras_Fiadas',
                 'Total_Devendo',
+                'Total_A_Receber',
                 'Primeira_Compra',
                 'Ultima_Compra'
             ].join(';'));
@@ -4012,11 +4033,16 @@
                 .sort((a, b) => b.totalDevendo - a.totalDevendo)
                 .forEach((item, index) => {
                     const clienteExibicao = formatarClienteComGraduacao(item.cliente);
+                    const totalReceber = Number(item.totalDevendo || 0) + Number(item.mensalidade || 0);
                     linhas.push([
                         index + 1,
                         escaparCsv(clienteExibicao),
+                        escaparCsv(item.graduacao || 'NAO INFORMADA'),
+                        escaparCsv(item.vinculo || 'NAO'),
+                        Number(item.mensalidade || 0).toFixed(2).replace('.', ','),
                         item.quantidadeCompras,
                         item.totalDevendo.toFixed(2).replace('.', ','),
+                        totalReceber.toFixed(2).replace('.', ','),
                         escaparCsv(item.primeiraCompra),
                         escaparCsv(item.ultimaCompra)
                     ].join(';'));
@@ -4027,11 +4053,12 @@
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `devedores_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.csv`;
+            const sufixoMes = mesSelecionado !== 'todos' ? `_${mesSelecionado}` : '';
+            a.download = `recebimentos${sufixoMes}_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.csv`;
             a.click();
             window.URL.revokeObjectURL(url);
 
-            mostrarAlerta('Planilha de devedores gerada com sucesso', 'sucesso');
+            mostrarAlerta('Planilha de recebimentos gerada com sucesso', 'sucesso');
         }
 
         // Marcar Como Recebido
