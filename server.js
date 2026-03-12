@@ -930,7 +930,7 @@ app.get('/api/product-image', requireLogin, async (req, res) => {
 
 app.get('/api/product-image-options', requireLogin, async (req, res) => {
   const relatedRaw = Number.parseInt(String(req.query.related || ''), 10);
-  const relatedCount = Number.isFinite(relatedRaw) ? Math.max(10, Math.min(40, relatedRaw)) : 20;
+  const relatedCount = Number.isFinite(relatedRaw) ? Math.max(1, Math.min(40, relatedRaw)) : 9;
   const TOTAL_OPCOES_IMAGEM = relatedCount + 1; // 1 principal + N relacionadas
   const nome = String(req.query.nome || '').trim();
   const codigoInformado = String(req.query.codigo || '').trim();
@@ -1013,6 +1013,12 @@ app.get('/api/product-image-options', requireLogin, async (req, res) => {
   const codigoValido = codigo.length >= 8;
   const podeBuscarInternetPorTexto = !codigoValido && exigeNomeEMarca;
 
+  if (!codigoValido && !exigeNomeEMarca) {
+    return res.status(400).json({
+      error: 'Para gerar imagem pela internet, informe codigo de barras valido ou nome + marca do produto.'
+    });
+  }
+
   function pontuarRelevancia(textoAlvo) {
     const texto = String(textoAlvo || '')
       .toLowerCase()
@@ -1078,7 +1084,7 @@ app.get('/api/product-image-options', requireLogin, async (req, res) => {
         if (!murl) continue;
 
         const score = pontuarRelevancia(`${texto} ${murl}`);
-        const scoreMinimo = exigeNomeEMarca ? 10 : 6;
+        const scoreMinimo = exigeNomeEMarca ? 12 : 8;
         if (score < scoreMinimo) continue;
 
         resultados.push({ url: murl, score });
@@ -1159,9 +1165,12 @@ app.get('/api/product-image-options', requireLogin, async (req, res) => {
   }
 
   const termoBase = `${nomeBusca || termoBusca || 'produto'} ${marcaBusca || ''} ${categoriaBusca || ''}`.trim();
-  if (opcoes.length === 0) {
-    // Fallback deterministico usando texto do produto, sem imagens aleatorias da internet.
-    adicionarOpcao(gerarSvgProdutoFallback(termoBase || 'produto'), 'local-fallback');
+  // Completa com variações locais determinísticas para sempre entregar a quantidade solicitada sem imagem aleatória.
+  let fallbackIndex = 0;
+  while (opcoes.length < TOTAL_OPCOES_IMAGEM && fallbackIndex < TOTAL_OPCOES_IMAGEM + 4) {
+    const sufixo = fallbackIndex === 0 ? '' : ` ${fallbackIndex + 1}`;
+    adicionarOpcao(gerarSvgProdutoFallback(`${termoBase || 'produto'}${sufixo}`), 'local-fallback');
+    fallbackIndex += 1;
   }
 
   const selecionadas = opcoes.slice(0, TOTAL_OPCOES_IMAGEM);

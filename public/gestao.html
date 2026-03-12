@@ -1906,7 +1906,7 @@
             if (codigo) params.set('codigo', codigo);
             if (marca) params.set('marca', marca);
             if (categoria) params.set('categoria', categoria);
-            params.set('related', '20');
+            params.set('related', '9');
             if (!params.toString()) return [];
 
             try {
@@ -1954,10 +1954,12 @@
             const codigoBarras = String(document.getElementById('produtoCodigoBarras')?.value || '').trim();
             const marca = String(document.getElementById('produtoMarca')?.value || '').trim();
             const categoria = String(document.getElementById('produtoCategoria')?.value || '').trim();
-            const termo = codigoBarras || nome || marca || categoria;
+            const codigoValido = String(codigoBarras).replace(/\D/g, '').length >= 8;
+            const nomeMarcaValidos = Boolean(nome && marca);
+            const termo = codigoBarras || `${nome} ${marca}` || categoria;
 
-            if (!termo) {
-                mostrarAlerta('Preencha o codigo de barras ou informe nome e marca para buscar imagem', 'erro');
+            if (!codigoValido && !nomeMarcaValidos) {
+                mostrarAlerta('Para gerar imagem, informe codigo de barras valido ou preencha nome e marca', 'erro');
                 return;
             }
 
