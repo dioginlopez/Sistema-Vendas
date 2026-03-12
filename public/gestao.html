@@ -1957,7 +1957,7 @@
             const termo = codigoBarras || nome || marca || categoria;
 
             if (!termo) {
-                mostrarAlerta('Digite nome, marca, categoria ou codigo para buscar imagem', 'erro');
+                mostrarAlerta('Preencha o codigo de barras ou informe nome e marca para buscar imagem', 'erro');
                 return;
             }
 
@@ -3957,21 +3957,7 @@
 
             const devedores = {};
 
-            const extrairDataSemHora = (valorData) => {
-                return String(valorData || '').split(',')[0].trim();
-            };
-
-            const converterDataBrParaNumero = (valorData) => {
-                const dataSemHora = extrairDataSemHora(valorData);
-                const partes = dataSemHora.split('/');
-                if (partes.length !== 3) return 0;
-                const [dia, mes, ano] = partes.map(Number);
-                return new Date(ano, (mes || 1) - 1, dia || 1).getTime();
-            };
-
             vendasFiadas.forEach(venda => {
-                const dataVenda = extrairDataSemHora(venda.data);
-                const dataVendaNum = converterDataBrParaNumero(venda.data);
                 const nomeBase = String(venda.cliente || '').replace(/\s*\([^)]*\)\s*$/, '').trim().toUpperCase();
                 const associado = associados.find((a) => String(a.nome || '').trim().toUpperCase() === nomeBase);
                 const graduacao = String(associado && associado.posto ? associado.posto : '').trim().toUpperCase();
@@ -3987,27 +3973,11 @@
                         graduacao: graduacao || 'NAO INFORMADA',
                         vinculo,
                         mensalidade,
-                        quantidadeCompras: 0,
-                        totalDevendo: 0,
-                        primeiraCompra: dataVenda,
-                        ultimaCompra: dataVenda,
-                        primeiraCompraNum: dataVendaNum,
-                        ultimaCompraNum: dataVendaNum
+                        totalDevendo: 0
                     };
                 }
 
-                devedores[venda.cliente].quantidadeCompras += 1;
                 devedores[venda.cliente].totalDevendo += venda.total;
-
-                if (dataVendaNum < devedores[venda.cliente].primeiraCompraNum) {
-                    devedores[venda.cliente].primeiraCompraNum = dataVendaNum;
-                    devedores[venda.cliente].primeiraCompra = dataVenda;
-                }
-
-                if (dataVendaNum > devedores[venda.cliente].ultimaCompraNum) {
-                    devedores[venda.cliente].ultimaCompraNum = dataVendaNum;
-                    devedores[venda.cliente].ultimaCompra = dataVenda;
-                }
             });
 
             const escaparCsv = (valor) => {
@@ -4022,11 +3992,8 @@
                 'Graduacao',
                 'Vinculo',
                 'Mensalidade',
-                'Qtd_Compras_Fiadas',
                 'Total_Devendo',
-                'Total_A_Receber',
-                'Primeira_Compra',
-                'Ultima_Compra'
+                'Total_A_Receber'
             ].join(';'));
 
             Object.values(devedores)
@@ -4040,11 +4007,8 @@
                         escaparCsv(item.graduacao || 'NAO INFORMADA'),
                         escaparCsv(item.vinculo || 'NAO'),
                         Number(item.mensalidade || 0).toFixed(2).replace('.', ','),
-                        item.quantidadeCompras,
                         item.totalDevendo.toFixed(2).replace('.', ','),
-                        totalReceber.toFixed(2).replace('.', ','),
-                        escaparCsv(item.primeiraCompra),
-                        escaparCsv(item.ultimaCompra)
+                        totalReceber.toFixed(2).replace('.', ',')
                     ].join(';'));
                 });
 

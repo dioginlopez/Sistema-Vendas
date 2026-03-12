@@ -1834,7 +1834,7 @@
             const termo = codigoBarras || nome || marca || categoria;
 
             if (!termo) {
-                mostrarAlerta('Digite nome, marca, categoria ou codigo para buscar imagem', 'erro');
+                mostrarAlerta('Preencha o codigo de barras ou informe nome e marca para buscar imagem', 'erro');
                 return;
             }
 
@@ -2379,7 +2379,7 @@
             produtosFiltrados.forEach(produto => {
                 const statusEstoque = produto.estoque <= 10 ? 'baixo' : '';
                 const disabled = produto.estoque === 0 ? 'disabled' : '';
-                const produtoIdArg = JSON.stringify(normalizarIdProduto(produto.id));
+                const produtoIdArg = normalizarIdProduto(produto.id).replace(/'/g, "\\'");
                 const imagemProduto = produto.imagemUrl
                     ? `<img class="produto-thumb" src="${produto.imagemUrl}" alt="Imagem de ${produto.nome}" loading="lazy" onerror="this.style.display='none'">`
                     : '';
@@ -2399,7 +2399,7 @@
                             Estoque: ${produto.estoque} un.
                         </div>
                         <div class="produto-botoes">
-                            <button class="btn btn-comprar" ${disabled} onclick="adicionarAoCarrinho(${produtoIdArg})">Comprar</button>
+                            <button class="btn btn-comprar" ${disabled} onclick="adicionarAoCarrinho('${produtoIdArg}')">Comprar</button>
                         </div>
                     </div>
                 `;
@@ -2684,7 +2684,7 @@
                 const iconStatus = produto.estoque <= 10
                     ? '<i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>'
                     : '<i class="bi bi-check-circle-fill" aria-hidden="true"></i>';
-                const produtoIdArg = JSON.stringify(normalizarIdProduto(produto.id));
+                const produtoIdArg = normalizarIdProduto(produto.id).replace(/'/g, "\\'");
                 const imagemProduto = produto.imagemUrl
                     ? `<img src="${produto.imagemUrl}" class="produto-thumb-mini" alt="Imagem de ${produto.nome}" loading="lazy" onerror="this.style.display='none'">`
                     : '';
@@ -2692,9 +2692,9 @@
                 const acoesAdmin = usuarioEhAdmin()
                     ? `
                         <div class="estoque-actions">
-                            <button class="btn btn-secondary estoque-action-btn" onclick="abrirModalEstoque(${produtoIdArg})" title="Atualizar estoque" aria-label="Atualizar estoque"><i class="bi bi-box-seam" aria-hidden="true"></i></button>
-                            <button class="btn btn-editar estoque-action-btn" onclick="editarProduto(${produtoIdArg})" title="Editar produto" aria-label="Editar produto"><i class="bi bi-pencil-square" aria-hidden="true"></i></button>
-                            <button class="btn btn-excluir estoque-action-btn" onclick="excluirProduto(${produtoIdArg})" title="Excluir produto" aria-label="Excluir produto"><i class="bi bi-trash3" aria-hidden="true"></i></button>
+                            <button class="btn btn-secondary estoque-action-btn" onclick="abrirModalEstoque('${produtoIdArg}')" title="Atualizar estoque" aria-label="Atualizar estoque"><i class="bi bi-box-seam" aria-hidden="true"></i></button>
+                            <button class="btn btn-editar estoque-action-btn" onclick="editarProduto('${produtoIdArg}')" title="Editar produto" aria-label="Editar produto"><i class="bi bi-pencil-square" aria-hidden="true"></i></button>
+                            <button class="btn btn-excluir estoque-action-btn" onclick="excluirProduto('${produtoIdArg}')" title="Excluir produto" aria-label="Excluir produto"><i class="bi bi-trash3" aria-hidden="true"></i></button>
                         </div>
                     `
                     : '';
@@ -2806,7 +2806,7 @@
             carrinho.forEach(item => {
                 const produto = produtos.find((p) => idsProdutoIguais(p.id, item.id));
                 const precoItem = item.preco * item.quantidade;
-                const itemIdArg = JSON.stringify(normalizarIdProduto(item.id));
+                const itemIdArg = normalizarIdProduto(item.id).replace(/'/g, "\\'");
 
                 const html = `
                     <div class="carrinho-item">
@@ -2818,11 +2818,11 @@
                         </div>
                         <div style="display: flex; gap: 10px; align-items: center;">
                             <div class="item-qtd">
-                                <button class="btn qtd-btn btn-secondary" onclick="mudarQuantidade(${itemIdArg}, -1)">-</button>
+                                <button class="btn qtd-btn btn-secondary" onclick="mudarQuantidade('${itemIdArg}', -1)">-</button>
                                 <span class="qtd-input" style="border: none; background: transparent;">${item.quantidade}</span>
-                                <button class="btn qtd-btn btn-secondary" onclick="mudarQuantidade(${itemIdArg}, 1)">+</button>
+                                <button class="btn qtd-btn btn-secondary" onclick="mudarQuantidade('${itemIdArg}', 1)">+</button>
                             </div>
-                            <button class="btn btn-danger" style="padding: 8px 12px;" onclick="removerDoCarrinho(${itemIdArg})">✕</button>
+                            <button class="btn btn-danger" style="padding: 8px 12px;" onclick="removerDoCarrinho('${itemIdArg}')">✕</button>
                         </div>
                     </div>
                 `;

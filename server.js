@@ -1010,6 +1010,8 @@ app.get('/api/product-image-options', requireLogin, async (req, res) => {
   const marcaTokens = tokenizarTexto(marcaBusca);
   const categoriaTokens = tokenizarTexto(categoriaBusca);
   const exigeNomeEMarca = nomeTokens.length > 0 && marcaTokens.length > 0;
+  const codigoValido = codigo.length >= 8;
+  const podeBuscarInternetPorTexto = !codigoValido && exigeNomeEMarca;
 
   function pontuarRelevancia(textoAlvo) {
     const texto = String(textoAlvo || '')
@@ -1091,7 +1093,7 @@ app.get('/api/product-image-options', requireLogin, async (req, res) => {
       .slice(0, Math.max(5, limite));
   }
 
-  if (codigo && codigo.length >= 8) {
+  if (codigoValido) {
     try {
       const resposta = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(codigo)}.json`, {
         signal: AbortSignal.timeout(4500),
@@ -1123,7 +1125,7 @@ app.get('/api/product-image-options', requireLogin, async (req, res) => {
   }
 
   const termoBusca = codigoInformado || nomeBusca || marcaBusca;
-  if (termoBusca || marcaBusca || categoriaBusca) {
+  if (podeBuscarInternetPorTexto) {
     try {
       const melhoresBing = await buscarMelhoresImagensBing(termoBusca, marcaBusca, categoriaBusca, TOTAL_OPCOES_IMAGEM * 2);
       melhoresBing.forEach((url, idx) => adicionarOpcao(url, idx === 0 ? 'bing-first' : 'bing-related'));
@@ -1132,7 +1134,7 @@ app.get('/api/product-image-options', requireLogin, async (req, res) => {
     }
   }
 
-  if (termoBusca) {
+  if (podeBuscarInternetPorTexto) {
     try {
       const wikiLimite = Math.min(50, Math.max(12, TOTAL_OPCOES_IMAGEM * 3));
       const wikiUrl = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=${encodeURIComponent(`${termoBusca} ${marcaBusca} ${categoriaBusca} produto embalagem`)}&gsrlimit=${wikiLimite}&prop=imageinfo&iiprop=url|mime&format=json`;
