@@ -1343,7 +1343,7 @@
                         <input type="text" id="pesquisaCodigoBarras" placeholder="Ou pesquisar somente por codigo de barras" inputmode="numeric" onkeyup="filtrarProdutos()" style="margin-bottom: 20px;">
                     </div>
                     <div class="form-group" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom: 12px;">
-                        <input type="text" id="codigoBarrasVenda" class="form-control" placeholder="Leitura rapida por codigo de barras" style="flex:2;min-width:220px;" onkeydown="if(event.key==='Enter'){event.preventDefault();adicionarPorCodigoBarras();}">
+                        <input type="text" id="codigoBarrasVenda" class="form-control" placeholder="Leitura rapida por codigo de barras" style="flex:2;min-width:220px;" oninput="tentarAdicionarPorCodigoBarrasAutomatico()" onkeydown="if(event.key==='Enter'){event.preventDefault();adicionarPorCodigoBarras();}">
                         <button class="btn btn-secondary" style="width:auto;margin-top:0;padding:10px 14px;" onclick="adicionarPorCodigoBarras()"><i class="bi bi-upc-scan" aria-hidden="true"></i> Ler Codigo</button>
                     </div>
                     <div class="produtos-list" id="produtosLista"></div>
@@ -1799,6 +1799,7 @@
         let salvarServidorTimeout = null;
         let ultimoEstadoServidorSerializado = '';
         let intervaloSalvarServidor = null;
+        let leituraCodigoBarrasTimeout = null;
         const categoriasProdutoPermitidas = [
             'Bebidas Alcoolicas',
             'Bebida',
@@ -1817,6 +1818,36 @@
 
         function idsProdutoIguais(a, b) {
             return normalizarIdProduto(a) === normalizarIdProduto(b);
+        }
+
+        function gerarIdProdutoUnico() {
+            return `p-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        }
+
+        function garantirIdsProdutosValidos() {
+            if (!Array.isArray(produtos) || produtos.length === 0) return;
+
+            const idsUsados = new Set();
+            let alterou = false;
+
+            produtos = produtos.map((produto) => {
+                const idAtual = normalizarIdProduto(produto && produto.id);
+                let idFinal = idAtual;
+
+                if (!idFinal || idsUsados.has(idFinal)) {
+                    alterou = true;
+                    do {
+                        idFinal = gerarIdProdutoUnico();
+                    } while (idsUsados.has(idFinal));
+                }
+
+                idsUsados.add(idFinal);
+                return { ...produto, id: idFinal };
+            });
+
+            if (alterou) {
+                salvarProdutos();
+            }
         }
 
         function atualizarPreviewImagemProduto(url, status) {
@@ -2212,6 +2243,7 @@
             }
 
             await carregarEstadoServidor();
+            garantirIdsProdutosValidos();
             sincronizacaoServidorAtiva = true;
             if (!intervaloSalvarServidor) {
                 intervaloSalvarServidor = setInterval(() => {
@@ -2891,7 +2923,7 @@
 
             produtosFiltrados.forEach(produto => {
                 const statusEstoque = produto.estoque <= 10 ? 'baixo' : '';
-                const disabled = produto.estoque === 0 ? 'disabled' : '';
+                const disabled = Number(produto.estoque || 0) === 0 ? 'disabled' : '';
                 const produtoIdArg = normalizarIdProduto(produto.id).replace(/'/g, "\\'");
                 const imagemProduto = produto.imagemUrl
                     ? `<img class="produto-thumb" src="${produto.imagemUrl}" alt="Imagem de ${produto.nome}" loading="lazy" onerror="this.style.display='none'">`
@@ -3105,13 +3137,19 @@
 
         // Adicionar ao Carrinho
         function adicionarAoCarrinho(produtoId) {
-            const produto = produtos.find((p) => idsProdutoIguais(p.id, produtoId));
+            const idNormalizado = normalizarIdProduto(produtoId);
+            if (!idNormalizado) {
+                mostrarAlerta('Produto invalido para adicionar ao carrinho', 'erro');
+                return;
+            }
+
+            const produto = produtos.find((p) => idsProdutoIguais(p.id, idNormalizado));
             if (!produto || Number(produto.estoque || 0) === 0) {
                 mostrarAlerta('Produto não disponível', 'erro');
                 return;
             }
 
-            const itemCarrinho = carrinho.find((item) => idsProdutoIguais(item.id, produtoId));
+            const itemCarrinho = carrinho.find((item) => idsProdutoIguais(item.id, idNormalizado));
             if (itemCarrinho) {
                 if (itemCarrinho.quantidade < produto.estoque) {
                     itemCarrinho.quantidade++;
@@ -3149,6 +3187,26 @@
 
             adicionarAoCarrinho(produto.id);
             campo.value = '';
+        }
+
+        function tentarAdicionarPorCodigoBarrasAutomatico() {
+            const campo = document.getElementById('codigoBarrasVenda');
+            if (!campo) return;
+
+            if (leituraCodigoBarrasTimeout) {
+                clearTimeout(leituraCodigoBarrasTimeout);
+            }
+
+            leituraCodigoBarrasTimeout = setTimeout(() => {
+                const codigo = campo.value.trim();
+                if (!codigo) return;
+
+                const produto = produtos.find((p) => String(p.codigoBarras || '') === codigo);
+                if (!produto) return;
+
+                adicionarAoCarrinho(produto.id);
+                campo.value = '';
+            }, 120);
         }
 
         // Atualizar Carrinho
@@ -4073,6 +4131,16 @@
                         <span class="total-valor" id="totalRecebimento">R$ 0,00</span>
                     </div>
                 </div>
+                <div class="form-group" style="margin-top: 12px;">
+                    <label for="metodoPagamentoRecebimento">Opção de Pagamento:</label>
+                    <select id="metodoPagamentoRecebimento" class="form-control">
+                        <option value="">-- Selecione uma opção --</option>
+                        <option value="dinheiro">Dinheiro</option>
+                        <option value="pix">PIX</option>
+                        <option value="credito">Cartão de Crédito</option>
+                        <option value="debito">Cartão de Débito</option>
+                    </select>
+                </div>
             `;
             
             document.getElementById('modalRecebimentoTitulo').textContent = `Recebimento - ${clienteExibicao}`;
@@ -4103,6 +4171,7 @@
             if(!usuarioEhAdmin()) return bloquearAcaoAdmin();
             const checkboxes = document.querySelectorAll('.compraCheckbox:checked');
             const vendasSelecionadas = [];
+            const metodoPagamentoRecebimento = document.getElementById('metodoPagamentoRecebimento')?.value || '';
 
             checkboxes.forEach(checkbox => {
                 const vendaId = parseInt(checkbox.getAttribute('data-venda-id'));
@@ -4114,9 +4183,15 @@
                 return;
             }
 
+            if (!metodoPagamentoRecebimento) {
+                mostrarAlerta('Selecione a opção de pagamento para confirmar o recebimento', 'erro');
+                return;
+            }
+
             vendas = vendas.map(v => {
                 if (v.cliente === clienteEmRecebimento && vendasSelecionadas.includes(v.id)) {
                     v.fiado = false;
+                    v.metodoPagamento = metodoPagamentoRecebimento;
                 }
                 return v;
             });
