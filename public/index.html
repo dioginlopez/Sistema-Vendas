@@ -1803,17 +1803,39 @@
             }
         }
 
-        async function buscarOpcoesImagemProduto(nomeProduto, codigoBarras, marcaProduto, categoriaProduto) {
+        function extrairSaborAproximado(nomeProduto, marcaProduto) {
+            const nome = String(nomeProduto || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ' ');
+            const marca = String(marcaProduto || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ' ');
+            if (!nome) return '';
+
+            const stopwords = new Set([
+                'de', 'da', 'do', 'sem', 'com', 'zero', 'light', 'integral', 'tradicional', 'original',
+                'produto', 'bebida', 'refrigerante', 'suco', 'energetico', 'lata', 'pet', 'ml', 'litro'
+            ]);
+            const marcaTokens = new Set(marca.split(/[^a-z0-9]+/).filter((t) => t.length >= 3));
+            const tokens = nome
+                .split(/[^a-z0-9]+/)
+                .map((t) => t.trim())
+                .filter((t) => t.length >= 3 && !stopwords.has(t) && !marcaTokens.has(t));
+
+            if (!tokens.length) return '';
+            if (tokens.length === 1) return tokens[0];
+            return `${tokens[tokens.length - 2]} ${tokens[tokens.length - 1]}`.trim();
+        }
+
+        async function buscarOpcoesImagemProduto(nomeProduto, codigoBarras, marcaProduto, categoriaProduto, saborProduto) {
             const params = new URLSearchParams();
             const nome = String(nomeProduto || '').trim();
             const codigo = String(codigoBarras || '').trim();
             const marca = String(marcaProduto || '').trim();
             const categoria = String(categoriaProduto || '').trim();
+            const sabor = String(saborProduto || '').trim();
             if (nome) params.set('nome', nome);
             if (codigo) params.set('codigo', codigo);
             if (marca) params.set('marca', marca);
             if (categoria) params.set('categoria', categoria);
-            params.set('related', '9');
+            if (sabor) params.set('sabor', sabor);
+            params.set('related', 'all');
             if (!params.toString()) return [];
 
             try {
@@ -1861,16 +1883,16 @@
             const codigoBarras = String(document.getElementById('produtoCodigoBarras')?.value || '').trim();
             const marca = String(document.getElementById('produtoMarca')?.value || '').trim();
             const categoria = String(document.getElementById('produtoCategoria')?.value || '').trim();
+            const sabor = extrairSaborAproximado(nome, marca);
             const codigoValido = String(codigoBarras).replace(/\D/g, '').length >= 8;
             const nomeMarcaValidos = Boolean(nome && marca);
-            const termo = codigoBarras || `${nome} ${marca}` || categoria;
 
             if (!codigoValido && !nomeMarcaValidos) {
                 mostrarAlerta('Para gerar imagem, informe codigo de barras valido ou preencha nome e marca', 'erro');
                 return;
             }
 
-            const opcoes = await buscarOpcoesImagemProduto(nome, codigoBarras, marca, categoria);
+            const opcoes = await buscarOpcoesImagemProduto(nome, codigoBarras, marca, categoria, sabor);
             if (!opcoes.length) {
                 renderizarOpcoesImagemProduto([]);
                 mostrarAlerta('Nao foi possivel encontrar imagem relacionada', 'erro');

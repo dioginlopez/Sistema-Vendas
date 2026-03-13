@@ -929,16 +929,22 @@ app.get('/api/product-image', requireLogin, async (req, res) => {
 });
 
 app.get('/api/product-image-options', requireLogin, async (req, res) => {
-  const relatedRaw = Number.parseInt(String(req.query.related || ''), 10);
-  const relatedCount = Number.isFinite(relatedRaw) ? Math.max(1, Math.min(40, relatedRaw)) : 9;
-  const TOTAL_OPCOES_IMAGEM = relatedCount + 1; // 1 principal + N relacionadas
+  const relatedParam = String(req.query.related || '').trim().toLowerCase();
+  const semLimite = ['all', 'unlimited', 'sem-limite', 'sem_limite'].includes(relatedParam);
+  const relatedRaw = Number.parseInt(relatedParam, 10);
+  const relatedCount = semLimite
+    ? null
+    : (Number.isFinite(relatedRaw) ? Math.max(1, Math.min(120, relatedRaw)) : 9);
+  const TOTAL_OPCOES_IMAGEM = semLimite ? null : (relatedCount + 1); // 1 principal + N relacionadas
   const nome = String(req.query.nome || '').trim();
   const codigoInformado = String(req.query.codigo || '').trim();
   const codigo = normalizeCpf(codigoInformado).trim();
   const marca = String(req.query.marca || '').trim();
+  const sabor = String(req.query.sabor || '').trim();
   const categoria = String(req.query.categoria || '').trim();
   let nomeBusca = nome;
   let marcaBusca = marca;
+  let saborBusca = sabor;
   let categoriaBusca = categoria;
 
   await ensureDbLoaded();
@@ -947,12 +953,13 @@ app.get('/api/product-image-options', requireLogin, async (req, res) => {
     if (produtoLocal) {
       if (!nomeBusca) nomeBusca = String(produtoLocal.nome || '').trim();
       if (!marcaBusca) marcaBusca = String(produtoLocal.marca || '').trim();
+      if (!saborBusca) saborBusca = String(produtoLocal.sabor || '').trim();
       if (!categoriaBusca) categoriaBusca = String(produtoLocal.categoria || '').trim();
     }
   }
 
-  if (!nomeBusca && !codigoInformado && !codigo && !marcaBusca && !categoriaBusca) {
-    return res.status(400).json({ error: 'Informe nome, marca, categoria ou codigo do produto' });
+  if (!nomeBusca && !codigoInformado && !codigo && !marcaBusca && !saborBusca && !categoriaBusca) {
+    return res.status(400).json({ error: 'Informe nome, marca, sabor, categoria ou codigo do produto' });
   }
 
   const opcoes = [];
@@ -1008,14 +1015,16 @@ app.get('/api/product-image-options', requireLogin, async (req, res) => {
 
   const nomeTokens = tokenizarTexto(nomeBusca);
   const marcaTokens = tokenizarTexto(marcaBusca);
+  const saborTokens = tokenizarTexto(saborBusca);
   const categoriaTokens = tokenizarTexto(categoriaBusca);
   const exigeNomeEMarca = nomeTokens.length > 0 && marcaTokens.length > 0;
+  const exigeMarcaESabor = marcaTokens.length > 0 && saborTokens.length > 0;
   const codigoValido = codigo.length >= 8;
-  const podeBuscarInternetPorTexto = !codigoValido && exigeNomeEMarca;
+  const podeBuscarInternetPorTexto = !codigoValido && (exigeNomeEMarca || exigeMarcaESabor);
 
-  if (!codigoValido && !exigeNomeEMarca) {
+  if (!codigoValido && !exigeNomeEMarca && !exigeMarcaESabor) {
     return res.status(400).json({
-      error: 'Para gerar imagem pela internet, informe codigo de barras valido ou nome + marca do produto.'
+      error: 'Para gerar imagem pela internet, informe codigo de barras valido ou nome + marca ou marca + sabor do produto.'
     });
   }
 
@@ -1029,6 +1038,7 @@ app.get('/api/product-image-options', requireLogin, async (req, res) => {
 
     const nomeHits = contar(nomeTokens);
     const marcaHits = contar(marcaTokens);
+    const saborHits = contar(saborTokens);
     const categoriaHits = contar(categoriaTokens);
 
     // Regra anti-aleatorio: se informou nome/marca, ao menos 1 token de cada deve aparecer.
@@ -1037,18 +1047,25 @@ app.get('/api/product-image-options', requireLogin, async (req, res) => {
 
     // Modo estrito: quando nome e marca forem informados, ambos precisam bater no mesmo resultado.
     if (exigeNomeEMarca && (nomeHits === 0 || marcaHits === 0)) return -1;
+    if (exigeMarcaESabor && (marcaHits === 0 || saborHits === 0)) return -1;
 
     let score = 0;
     score += nomeHits * 6;
     score += marcaHits * 8;
+    score += saborHits * 9;
     score += categoriaHits * 4;
 
     if (codigo && texto.includes(codigo)) score += 10;
     return score;
   }
 
-  async function buscarMelhoresImagensBing(termo, termoMarca, termoCategoria, limite = 12) {
-    const consultaBase = [String(termo || '').trim(), String(termoMarca || '').trim(), String(termoCategoria || '').trim()]
+  async function buscarMelhoresImagensBing(termo, termoMarca, termoSabor, termoCategoria, limite = 12) {
+    const consultaBase = [
+      String(termo || '').trim(),
+      String(termoMarca || '').trim(),
+      String(termoSabor || '').trim(),
+      String(termoCategoria || '').trim()
+    ]
       .filter(Boolean)
       .join(' ')
       .trim();
@@ -1093,10 +1110,12 @@ app.get('/api/product-image-options', requireLogin, async (req, res) => {
       }
     }
 
-    return resultados
+    const ordenadas = resultados
       .sort((a, b) => b.score - a.score)
-      .map((item) => item.url)
-      .slice(0, Math.max(5, limite));
+      .map((item) => item.url);
+
+    if (limite === null) return ordenadas;
+    return ordenadas.slice(0, Math.max(5, limite));
   }
 
   if (codigoValido) {
@@ -1113,6 +1132,8 @@ app.get('/api/product-image-options', requireLogin, async (req, res) => {
             p.product_name_pt,
             p.generic_name,
             p.brands,
+            p.flavors,
+            p.labels,
             p.categories,
           ].filter(Boolean).join(' ');
 
@@ -1133,7 +1154,8 @@ app.get('/api/product-image-options', requireLogin, async (req, res) => {
   const termoBusca = codigoInformado || nomeBusca || marcaBusca;
   if (podeBuscarInternetPorTexto) {
     try {
-      const melhoresBing = await buscarMelhoresImagensBing(termoBusca, marcaBusca, categoriaBusca, TOTAL_OPCOES_IMAGEM * 2);
+      const limiteBing = semLimite ? null : (TOTAL_OPCOES_IMAGEM * 2);
+      const melhoresBing = await buscarMelhoresImagensBing(termoBusca, marcaBusca, saborBusca, categoriaBusca, limiteBing);
       melhoresBing.forEach((url, idx) => adicionarOpcao(url, idx === 0 ? 'bing-first' : 'bing-related'));
     } catch (error) {
       // ignore
@@ -1142,10 +1164,16 @@ app.get('/api/product-image-options', requireLogin, async (req, res) => {
 
   if (podeBuscarInternetPorTexto) {
     try {
-      const wikiLimite = Math.min(50, Math.max(12, TOTAL_OPCOES_IMAGEM * 3));
-      const wikiUrl = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=${encodeURIComponent(`${termoBusca} ${marcaBusca} ${categoriaBusca} produto embalagem`)}&gsrlimit=${wikiLimite}&prop=imageinfo&iiprop=url|mime&format=json`;
-      const resposta = await fetch(wikiUrl, { signal: AbortSignal.timeout(4500) });
-      if (resposta.ok) {
+      const queryWiki = `${termoBusca} ${marcaBusca} ${saborBusca} ${categoriaBusca} produto embalagem`.trim();
+      const wikiLimitePagina = semLimite ? 50 : Math.min(50, Math.max(12, TOTAL_OPCOES_IMAGEM * 3));
+      const wikiPaginas = semLimite ? 5 : 1;
+
+      for (let pagina = 0; pagina < wikiPaginas; pagina += 1) {
+        const wikiOffset = pagina * wikiLimitePagina;
+        const wikiUrl = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=${encodeURIComponent(queryWiki)}&gsrlimit=${wikiLimitePagina}&gsroffset=${wikiOffset}&prop=imageinfo&iiprop=url|mime&format=json`;
+        const resposta = await fetch(wikiUrl, { signal: AbortSignal.timeout(4500) });
+        if (!resposta.ok) continue;
+
         const dados = await resposta.json();
         const pages = dados && dados.query && dados.query.pages ? Object.values(dados.query.pages) : [];
         for (const page of pages) {
@@ -1153,7 +1181,7 @@ app.get('/api/product-image-options', requireLogin, async (req, res) => {
           const mime = String(info && info.mime ? info.mime : '').toLowerCase();
           const pageTitle = String(page && page.title ? page.title : '');
           const scoreWiki = pontuarRelevancia(`${pageTitle} ${info && info.url ? info.url : ''}`);
-          const scoreMinimoWiki = exigeNomeEMarca ? 9 : 5;
+          const scoreMinimoWiki = (exigeNomeEMarca || exigeMarcaESabor) ? 9 : 5;
           if (info && info.url && mime.startsWith('image/') && scoreWiki >= scoreMinimoWiki) {
             adicionarOpcao(info.url, 'wikimedia');
           }
@@ -1165,18 +1193,22 @@ app.get('/api/product-image-options', requireLogin, async (req, res) => {
   }
 
   const termoBase = `${nomeBusca || termoBusca || 'produto'} ${marcaBusca || ''} ${categoriaBusca || ''}`.trim();
-  // Completa com variações locais determinísticas para sempre entregar a quantidade solicitada sem imagem aleatória.
-  let fallbackIndex = 0;
-  while (opcoes.length < TOTAL_OPCOES_IMAGEM && fallbackIndex < TOTAL_OPCOES_IMAGEM + 4) {
-    const sufixo = fallbackIndex === 0 ? '' : ` ${fallbackIndex + 1}`;
-    adicionarOpcao(gerarSvgProdutoFallback(`${termoBase || 'produto'}${sufixo}`), 'local-fallback');
-    fallbackIndex += 1;
+  // Se houver limite, completa com variações locais determinísticas para manter quantidade.
+  if (TOTAL_OPCOES_IMAGEM !== null) {
+    let fallbackIndex = 0;
+    while (opcoes.length < TOTAL_OPCOES_IMAGEM && fallbackIndex < TOTAL_OPCOES_IMAGEM + 4) {
+      const sufixo = fallbackIndex === 0 ? '' : ` ${fallbackIndex + 1}`;
+      adicionarOpcao(gerarSvgProdutoFallback(`${termoBase || 'produto'}${sufixo}`), 'local-fallback');
+      fallbackIndex += 1;
+    }
+  } else if (opcoes.length === 0) {
+    adicionarOpcao(gerarSvgProdutoFallback(termoBase || 'produto'), 'local-fallback');
   }
 
-  const selecionadas = opcoes.slice(0, TOTAL_OPCOES_IMAGEM);
+  const selecionadas = TOTAL_OPCOES_IMAGEM === null ? opcoes : opcoes.slice(0, TOTAL_OPCOES_IMAGEM);
   return res.json({
     options: selecionadas,
-    relatedRequested: relatedCount,
+    relatedRequested: semLimite ? 'all' : relatedCount,
     relatedFound: Math.max(0, selecionadas.length - 1),
   });
 });
