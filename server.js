@@ -621,8 +621,21 @@ app.put('/api/state', requireLogin, async (req, res) => {
   return res.json({ ok: true });
 });
 
-app.post('/api/state/flush', requireLogin, async (req, res) => {
+app.post('/api/state/flush', requireLogin, bodyParser.text({ type: '*/*', limit: '2mb' }), async (req, res) => {
   await ensureDbLoaded();
+
+  let payload = req.body;
+  if (typeof payload === 'string') {
+    const texto = payload.trim();
+    if (!texto) {
+      return res.status(400).json({ error: 'Estado inválido: payload vazio' });
+    }
+    try {
+      payload = JSON.parse(texto);
+    } catch (error) {
+      return res.status(400).json({ error: 'Estado inválido: payload nao e JSON valido' });
+    }
+  }
 
   const {
     produtos,
@@ -630,7 +643,7 @@ app.post('/api/state/flush', requireLogin, async (req, res) => {
     associados,
     vendaCounter,
     lastSaleId,
-  } = req.body || {};
+  } = payload || {};
 
   if (!Array.isArray(produtos) || !Array.isArray(vendas) || !Array.isArray(associados)) {
     return res.status(400).json({ error: 'Estado inválido: produtos, vendas e associados devem ser listas' });

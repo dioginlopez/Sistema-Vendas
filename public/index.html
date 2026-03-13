@@ -1677,6 +1677,7 @@
         let usuarioLogado = null;
         let perfilLogado = 'operador';
         let falhaTemporariaSessao = false;
+        let redirecionandoParaLogin = false;
         let sincronizacaoServidorAtiva = false;
         let salvarServidorTimeout = null;
         let ultimoEstadoServidorSerializado = '';
@@ -1939,8 +1940,16 @@
             return false;
         }
 
-        function redirecionarParaLogin() {
-            window.location.replace('login.html');
+        function redirecionarParaLogin(atrasoMs = 0) {
+            if (redirecionandoParaLogin) return;
+            redirecionandoParaLogin = true;
+
+            const executar = () => window.location.replace('login.html');
+            if (atrasoMs > 0) {
+                setTimeout(executar, atrasoMs);
+            } else {
+                executar();
+            }
         }
 
         function navegacaoEhRecarregamento() {
@@ -1960,7 +1969,7 @@
             } catch (erro) {
                 // Mesmo em falha de rede, força retorno à tela de login.
             } finally {
-                window.location.href = 'login.html';
+                redirecionarParaLogin();
             }
         }
 
@@ -2078,14 +2087,15 @@
                 const contentType = (resposta.headers.get('content-type') || '').toLowerCase();
 
                 if (respostaIndicaSessaoExpirada(resposta, contentType)) {
+                    falhaTemporariaSessao = false;
                     usuarioLogado = null;
                     perfilLogado = 'operador';
                     return false;
                 }
 
                 if (!resposta.ok || !contentType.includes('application/json')) {
-                    falhaTemporariaSessao = false;
-                    return false;
+                    falhaTemporariaSessao = true;
+                    return null;
                 }
 
                 const dados = await resposta.json();
@@ -2094,8 +2104,8 @@
                 falhaTemporariaSessao = false;
                 return Boolean(usuarioLogado);
             } catch (erro) {
-                falhaTemporariaSessao = false;
-                return false;
+                falhaTemporariaSessao = true;
+                return null;
             } finally {
                 atualizarIndicadorPerfil();
             }
@@ -2853,6 +2863,7 @@
             }
 
             atualizarCarrinho();
+            trocarAba('carrinho');
             mostrarAlerta(`${produto.nome} adicionado ao carrinho`, 'sucesso');
         }
 
