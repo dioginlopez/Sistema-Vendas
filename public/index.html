@@ -3650,7 +3650,14 @@
                                     <span class="recebimento-data">${venda.data}</span>
                                 </div>
                                 <div style="margin: 8px 0; color: #555; font-size: 0.9em;">
-                                    ${venda.itens.map((item, itemIdx) => `<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;"><span>• ${item.quantidade}× ${item.nome} <small style="color:#888;">R$ ${(item.quantidade * item.preco).toFixed(2)}</small></span><button type="button" onclick="removerItemDaCompra(${venda.id}, ${itemIdx})" style="background:none;border:none;color:#e74c3c;cursor:pointer;padding:0 4px;font-size:1em;flex-shrink:0;" title="Remover item"><i class='bi bi-x-circle'></i></button></div>`).join('')}
+                                    ${venda.itens.map((item, itemIdx) => {
+                                        const ehCasco = itemEhCasco(item);
+                                        const acaoBotao = ehCasco
+                                            ? `<button type="button" onclick="baixarCascoDaCompra(${venda.id}, ${itemIdx})" style="background:#16a34a;border:none;color:#fff;cursor:pointer;padding:4px 8px;border-radius:6px;font-size:0.78em;flex-shrink:0;" title="Baixar somente o casco">Baixar casco</button>`
+                                            : `<button type="button" onclick="removerItemDaCompra(${venda.id}, ${itemIdx})" style="background:none;border:none;color:#e74c3c;cursor:pointer;padding:0 4px;font-size:1em;flex-shrink:0;" title="Remover item"><i class='bi bi-x-circle'></i></button>`;
+                                        const estiloLinha = ehCasco ? 'background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:6px 8px;' : '';
+                                        return `<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;${estiloLinha}"><span>• ${item.quantidade}× ${item.nome} <small style="color:#888;">R$ ${(item.quantidade * item.preco).toFixed(2)}</small></span>${acaoBotao}</div>`;
+                                    }).join('')}
                                 </div>
                                 <div style="text-align: right;">
                                     <span class="recebimento-valor">R$ ${venda.total.toFixed(2)}</span>
@@ -3708,13 +3715,25 @@
             document.getElementById('totalRecebimento').textContent = `R$ ${totalSelecionado.toFixed(2)}`;
         }
 
+        function itemEhCasco(item) {
+            return /^casco\s*-/i.test(String(item?.nome || '').trim());
+        }
+
+        function baixarCascoDaCompra(vendaId, itemIndex) {
+            removerItemDaCompra(vendaId, itemIndex, true);
+        }
+
         // Remover Item Individual de uma Compra Fiada
-        function removerItemDaCompra(vendaId, itemIndex) {
+        function removerItemDaCompra(vendaId, itemIndex, baixaSomenteCasco = false) {
             if (!usuarioEhAdmin()) return bloquearAcaoAdmin();
             const venda = vendas.find(v => v.id === vendaId);
             if (!venda || !Array.isArray(venda.itens)) return;
-            const nomeItem = venda.itens[itemIndex] ? venda.itens[itemIndex].nome : 'item';
-            if (!confirm(`Remover "${nomeItem}" desta compra?`)) return;
+            const itemSelecionado = venda.itens[itemIndex];
+            const nomeItem = itemSelecionado ? itemSelecionado.nome : 'item';
+            const mensagemConfirmacao = baixaSomenteCasco || itemEhCasco(itemSelecionado)
+                ? `Dar baixa somente no casco "${nomeItem}" desta compra?`
+                : `Remover "${nomeItem}" desta compra?`;
+            if (!confirm(mensagemConfirmacao)) return;
 
             venda.itens.splice(itemIndex, 1);
 
@@ -3729,6 +3748,7 @@
             }
 
             salvarVendas();
+            atualizarClientesFiados();
             const temVendasRestantes = vendas.some(v => v.cliente === clienteEmRecebimento && v.fiado);
             if (temVendasRestantes) {
                 marcarComoRecebido(clienteEmRecebimento);
