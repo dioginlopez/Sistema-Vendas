@@ -621,6 +621,35 @@ app.put('/api/state', requireLogin, async (req, res) => {
   return res.json({ ok: true });
 });
 
+app.post('/api/state/flush', requireLogin, async (req, res) => {
+  await ensureDbLoaded();
+
+  const {
+    produtos,
+    vendas,
+    associados,
+    vendaCounter,
+    lastSaleId,
+  } = req.body || {};
+
+  if (!Array.isArray(produtos) || !Array.isArray(vendas) || !Array.isArray(associados)) {
+    return res.status(400).json({ error: 'Estado inválido: produtos, vendas e associados devem ser listas' });
+  }
+
+  const vendaCounterFinal = Number.isFinite(Number(vendaCounter)) && Number(vendaCounter) > 0
+    ? Number(vendaCounter)
+    : 1;
+
+  db.data.products = produtos;
+  db.data.vendas = vendas;
+  db.data.associados = associados;
+  db.data.vendaCounter = vendaCounterFinal;
+  db.data.lastSaleId = lastSaleId ?? null;
+
+  await persistDb();
+  return res.json({ ok: true });
+});
+
 app.get('/api/backups', requireLogin, requireAdmin, async (req, res) => {
   try {
     const backups = await listBackupFiles();

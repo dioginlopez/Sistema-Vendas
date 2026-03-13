@@ -1392,10 +1392,6 @@
                             <span>Subtotal:</span>
                             <span id="subtotal">R$ 0,00</span>
                         </div>
-                        <div class="total-label">
-                            <span>Desconto (%):</span>
-                            <input type="number" id="desconto" min="0" max="100" value="0" class="qtd-input" style="width: auto; max-width: 60px;" onchange="atualizarTotal()">
-                        </div>
                         <div class="total-label" style="font-size: 1.3em; margin-top: 10px; border-top: 2px solid #ddd; padding-top: 10px;">
                             <span>Total:</span>
                             <span class="total-valor" id="total">R$ 0,00</span>
@@ -1731,25 +1727,31 @@
             salvarVendas();
             editingSaleId = venda.id; // remember original id
 
-            // devolve ao estoque os itens da venda original antes da edição
+            // devolve ao estoque apenas os produtos da venda original antes da edição
             venda.itens.forEach(i => {
+                if (/^Casco\s*-/i.test(i.nome || '')) return;
                 const produto = produtos.find(p => p.nome === i.nome);
                 if (produto) produto.estoque += i.quantidade;
             });
 
-            // preencher carrinho com IDs reais dos produtos
-            carrinho = venda.itens.map(i => {
-                const produto = produtos.find(p => p.nome === i.nome);
-                return {
-                    id: produto.id,
-                    nome: i.nome,
-                    preco: i.preco,
-                    quantidade: i.quantidade
-                };
-            });
+            // preencher carrinho com IDs reais dos produtos e restaurar a marcação de casco
+            carrinho = venda.itens
+                .filter(i => !/^Casco\s*-/i.test(i.nome || ''))
+                .map(i => {
+                    const produto = produtos.find(p => p.nome === i.nome);
+                    if (!produto) return null;
+                    const itemCasco = venda.itens.find(vendaItem => vendaItem.nome === `Casco - ${i.nome}`);
+                    return {
+                        id: produto.id,
+                        nome: i.nome,
+                        preco: i.preco,
+                        quantidade: i.quantidade,
+                        casco: Boolean(itemCasco)
+                    };
+                })
+                .filter(Boolean);
             atualizarCarrinho();
             document.getElementById('nomeCliente').value = venda.cliente;
-            document.getElementById('desconto').value = venda.desconto;
             if(venda.fiado){
                 document.getElementById('vendaFiado').checked = true;
                 atualizarOpcoesPagamento();
@@ -2091,6 +2093,7 @@
 
         async function sairSistema() {
             try {
+                await salvarEstadoServidor({ forcar: true, usarKeepAlive: true });
                 await fetch('/logout', { method: 'POST' });
             } catch (erro) {
                 // Mesmo em falha de rede, força retorno à tela de login.
@@ -2117,24 +2120,57 @@
             }, 350);
         }
 
-        async function salvarEstadoServidor() {
+        async function salvarEstadoServidor(opcoes = {}) {
             if (!sincronizacaoServidorAtiva) return;
+
+            const { forcar = false, usarKeepAlive = false } = opcoes;
 
             const estado = obterEstadoAtualSistema();
             const serializado = JSON.stringify(estado);
-            if (serializado === ultimoEstadoServidorSerializado) return;
+            if (!forcar && serializado === ultimoEstadoServidorSerializado) return;
 
             try {
                 const resposta = await fetch('/api/state', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                    body: serializado
+                    body: serializado,
+                    keepalive: usarKeepAlive,
                 });
                 if (!resposta.ok) return;
                 ultimoEstadoServidorSerializado = serializado;
             } catch (erro) {
                 // Falha de rede: mantém dados locais e tenta novamente no próximo ciclo.
             }
+        }
+
+        function flushEstadoComBeacon(serializado) {
+            if (!navigator.sendBeacon) return false;
+            try {
+                const payload = new Blob([serializado], { type: 'application/json' });
+                return navigator.sendBeacon('/api/state/flush', payload);
+            } catch (erro) {
+                return false;
+            }
+        }
+
+        function salvarEstadoServidorNoEncerramento() {
+            if (!sincronizacaoServidorAtiva) return;
+
+            if (salvarServidorTimeout) {
+                clearTimeout(salvarServidorTimeout);
+                salvarServidorTimeout = null;
+            }
+
+            const serializado = JSON.stringify(obterEstadoAtualSistema());
+            if (serializado === ultimoEstadoServidorSerializado) return;
+
+            const enviado = flushEstadoComBeacon(serializado);
+            if (enviado) {
+                ultimoEstadoServidorSerializado = serializado;
+                return;
+            }
+
+            salvarEstadoServidor({ forcar: true, usarKeepAlive: true });
         }
 
         async function carregarEstadoServidor() {
@@ -2264,6 +2300,15 @@
         document.addEventListener('DOMContentLoaded', async () => {
             window.addEventListener('offline', () => {
                 mostrarAlerta('Conexao instavel. Tentando manter os dados locais sem sair da tela.', 'erro');
+            });
+
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'hidden') {
+                    salvarEstadoServidorNoEncerramento();
+                }
+            });
+            window.addEventListener('pagehide', () => {
+                salvarEstadoServidorNoEncerramento();
             });
 
             const sessaoValida = await carregarPerfilUsuarioLogado();
@@ -3261,8 +3306,12 @@
                 const precoItem = item.preco * item.quantidade;
                 const itemIdArg = normalizarIdProduto(item.id).replace(/'/g, "\\'");
 
+                const cascoHtml = produto && produto.valorCasco > 0
+                    ? `<div style="width:100%;margin-top:5px;padding-top:5px;border-top:1px dashed #ddd;flex-basis:100%;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.88em;color:#555;"><input type="checkbox" ${item.casco ? 'checked' : ''} onchange="toggleCasco('${itemIdArg}', this.checked)" style="cursor:pointer;width:16px;height:16px;"><span>Cliente levou o casco (+R$ ${produto.valorCasco.toFixed(2)})</span></label></div>`
+                    : '';
+
                 const html = `
-                    <div class="carrinho-item">
+                    <div class="carrinho-item" style="flex-wrap:wrap;">
                         <div class="item-info">
                             <div class="item-nome">${item.nome}</div>
                             <div class="item-detalhes">
@@ -3277,6 +3326,7 @@
                             </div>
                             <button class="btn btn-danger" style="padding: 8px 12px;" onclick="removerDoCarrinho('${itemIdArg}')">✕</button>
                         </div>
+                        ${cascoHtml}
                     </div>
                 `;
                 lista.innerHTML += html;
@@ -3302,12 +3352,8 @@
                 }
             });
 
-            const desconto = parseFloat(document.getElementById('desconto').value) || 0;
-            const valorDesconto = (subtotal * desconto) / 100;
-            const total = subtotal - valorDesconto;
-
             document.getElementById('subtotal').textContent = 'R$ ' + subtotal.toFixed(2);
-            document.getElementById('total').textContent = 'R$ ' + total.toFixed(2);
+            document.getElementById('total').textContent = 'R$ ' + subtotal.toFixed(2);
         }
 
         // Mudar Quantidade
@@ -3417,9 +3463,9 @@
                 }
             }
 
-            const desconto = parseFloat(document.getElementById('desconto').value) || 0;
-            const valorDesconto = (subtotal * desconto) / 100;
-            const total = subtotal - valorDesconto;
+            const desconto = 0;
+            const valorDesconto = 0;
+            const total = subtotal;
 
             // Registrar venda
             let idToUse = vendaCounter;
@@ -3431,28 +3477,25 @@
                 vendaCounter++;
                 localStorage.setItem('vendaCounter', vendaCounter);
             }
-                const cascoHtml = produto && produto.valorCasco > 0 ? `<div style="width:100%;margin-top:5px;padding-top:5px;border-top:1px dashed #ddd;flex-basis:100%;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.88em;color:#555;"><input type="checkbox" ${item.casco ? 'checked' : ''} onchange="toggleCasco('${itemIdArg}', this.checked)" style="cursor:pointer;width:16px;height:16px;"><span>🍺 Cliente levou o casco? (+R$ ${produto.valorCasco.toFixed(2)})</span></label></div>` : '';
-                const html = `
-                    <div class="carrinho-item" style="flex-wrap:wrap;">
-                        <div class="item-info">
-                            <div class="item-nome">${item.nome}</div>
-                            <div class="item-detalhes">
-                                R$ ${item.preco.toFixed(2)} × ${item.quantidade} = R$ ${precoItem.toFixed(2)}
-                            </div>
-                        </div>
-                        <div style="display: flex; gap: 10px; align-items: center;">
-                            <div class="item-qtd">
-                                <button class="btn qtd-btn btn-secondary" onclick="mudarQuantidade('${itemIdArg}', -1)">-</button>
-                                <span class="qtd-input" style="border: none; background: transparent;">${item.quantidade}</span>
-                                <button class="btn qtd-btn btn-secondary" onclick="mudarQuantidade('${itemIdArg}', 1)">+</button>
-                            </div>
-                            <button class="btn btn-danger" style="padding: 8px 12px;" onclick="removerDoCarrinho('${itemIdArg}')">✕</button>
-                        </div>
-                        ${cascoHtml}
-                    </div>
-                `;
+            const venda = {
+                id: idToUse,
+                data: new Date().toLocaleString('pt-BR'),
+                vendedor: usuarioLogado && usuarioLogado.nome ? usuarioLogado.nome : 'Nao informado',
+                cliente: nomeCliente,
+                fiado: vendaFiado,
+                metodoPagamento: vendaFiado ? 'Fiado' : metodoPagamento,
+                itens: itensVenda,
+                subtotal: subtotal,
+                desconto: desconto,
+                valorDesconto: valorDesconto,
+                total: total
+            };
+
+            vendas.unshift(venda);
+            salvarVendas();
+            salvarProdutos();
+
             carrinho = [];
-            document.getElementById('desconto').value = 0;
             document.getElementById('nomeCliente').value = '';
             document.getElementById('vendaFiado').checked = false;
             document.getElementById('metodoPagamento').value = '';
