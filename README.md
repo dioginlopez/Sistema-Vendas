@@ -88,6 +88,8 @@ http://localhost:3000
 - `AUTO_BACKUP_RETENTION`: quantidade maxima de backups mantidos (padrao `30`)
 - `AUTO_BACKUP_ON_START`: cria backup apos iniciar servidor (`true`/`false`, padrao `true`)
 - `BACKUP_DIR`: pasta dos backups (opcional; se omitido, usa pasta gravavel automatica)
+- `GOOGLE_CSE_API_KEY`: chave da API do Google Custom Search para busca estavel de imagens
+- `GOOGLE_CSE_CX`: identificador do mecanismo de busca customizado com pesquisa de imagens habilitada
 
 Exemplo PowerShell:
 
@@ -96,6 +98,22 @@ $env:SESSION_SECRET="chave-longa-segura"
 $env:NODE_ENV="production"
 npm start
 ```
+
+### Busca de imagens via Google API
+
+O backend pode usar Google Custom Search como fonte principal de imagens, com fallback automatico para Bing/Wikimedia e para o modo best-effort atual.
+
+Configure estas variaveis:
+
+```powershell
+$env:GOOGLE_CSE_API_KEY="sua-chave-api"
+$env:GOOGLE_CSE_CX="seu-search-engine-id"
+```
+
+Observacoes:
+
+- O mecanismo de busca customizado precisa estar com pesquisa na web/imagens habilitada.
+- Sem essas variaveis, o sistema continua funcionando com o fallback atual.
 
 ## Deploy
 

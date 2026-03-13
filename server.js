@@ -22,6 +22,8 @@ const AUTO_BACKUP_ON_START = String(process.env.AUTO_BACKUP_ON_START || 'true').
 const BOOTSTRAP_ADMIN_CPF = normalizeCpf(process.env.BOOTSTRAP_ADMIN_CPF || '');
 const BOOTSTRAP_ADMIN_SENHA = String(process.env.BOOTSTRAP_ADMIN_SENHA || '');
 const BOOTSTRAP_ADMIN_NOME = String(process.env.BOOTSTRAP_ADMIN_NOME || 'ADMIN').trim() || 'ADMIN';
+const GOOGLE_CSE_API_KEY = String(process.env.GOOGLE_CSE_API_KEY || process.env.GOOGLE_API_KEY || '').trim();
+const GOOGLE_CSE_CX = String(process.env.GOOGLE_CSE_CX || process.env.GOOGLE_SEARCH_ENGINE_ID || '').trim();
 
 if (isProduction) {
   // Allow secure cookies behind reverse proxies (Railway/Render).
@@ -1020,11 +1022,12 @@ app.get('/api/product-image-options', requireLogin, async (req, res) => {
   const exigeNomeEMarca = nomeTokens.length > 0 && marcaTokens.length > 0;
   const exigeMarcaESabor = marcaTokens.length > 0 && saborTokens.length > 0;
   const codigoValido = codigo.length >= 8;
-  const podeBuscarInternetPorTexto = !codigoValido && (exigeNomeEMarca || exigeMarcaESabor);
+  const temContextoTexto = nomeTokens.length > 0 || marcaTokens.length > 0 || saborTokens.length > 0 || categoriaTokens.length > 0;
+  const podeBuscarInternet = codigoValido || exigeNomeEMarca || exigeMarcaESabor || temContextoTexto;
 
-  if (!codigoValido && !exigeNomeEMarca && !exigeMarcaESabor) {
+  if (!codigoValido && !exigeNomeEMarca && !exigeMarcaESabor && !temContextoTexto) {
     return res.status(400).json({
-      error: 'Para gerar imagem pela internet, informe codigo de barras valido ou nome + marca ou marca + sabor do produto.'
+      error: 'Para gerar imagem pela internet, informe codigo de barras valido ou dados do produto como nome, marca ou sabor.'
     });
   }
 
@@ -1042,8 +1045,8 @@ app.get('/api/product-image-options', requireLogin, async (req, res) => {
     const categoriaHits = contar(categoriaTokens);
 
     // Regra anti-aleatorio: se informou nome/marca, ao menos 1 token de cada deve aparecer.
-    if (nomeTokens.length > 0 && nomeHits === 0) return -1;
-    if (marcaTokens.length > 0 && marcaHits === 0) return -1;
+    if (exigeNomeEMarca && nomeTokens.length > 0 && nomeHits === 0) return -1;
+    if ((exigeNomeEMarca || exigeMarcaESabor) && marcaTokens.length > 0 && marcaHits === 0) return -1;
 
     // Modo estrito: quando nome e marca forem informados, ambos precisam bater no mesmo resultado.
     if (exigeNomeEMarca && (nomeHits === 0 || marcaHits === 0)) return -1;
@@ -1118,6 +1121,143 @@ app.get('/api/product-image-options', requireLogin, async (req, res) => {
     return ordenadas.slice(0, Math.max(5, limite));
   }
 
+  async function buscarMelhoresImagensGoogle(consultas, limite = 12) {
+    const urls = [];
+    const vistosGoogle = new Set();
+    const consultasValidas = Array.from(new Set((Array.isArray(consultas) ? consultas : [])
+      .map((item) => String(item || '').trim())
+      .filter(Boolean)));
+
+    for (const consulta of consultasValidas) {
+      const googleUrl = `https://www.google.com/search?tbm=isch&hl=pt-BR&q=${encodeURIComponent(`${consulta} produto embalagem`)}`;
+      const resposta = await fetch(googleUrl, {
+        signal: AbortSignal.timeout(5000),
+        headers: {
+          'User-Agent': 'Mozilla/5.0 TocaApp/1.0',
+          'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
+        },
+      });
+
+      if (!resposta.ok) continue;
+      const htmlRaw = await resposta.text();
+      const html = htmlRaw
+        .replace(/\\u003d/g, '=')
+        .replace(/\\u0026/g, '&')
+        .replace(/\\\//g, '/');
+
+      const candidatas = [];
+      const regexImagens = /https?:\/\/[^\s"'<>]+?\.(?:jpg|jpeg|png|webp)(?:\?[^\s"'<>]*)?/gi;
+      let match;
+      while ((match = regexImagens.exec(html)) !== null) {
+        candidatas.push(match[0]);
+      }
+
+      for (const candidata of candidatas) {
+        const normalizada = String(candidata || '').trim();
+        if (!normalizada || vistosGoogle.has(normalizada)) continue;
+        if (/google\.|gstatic\.com|youtube\.com|ytimg\.com/i.test(normalizada)) continue;
+
+        const score = pontuarRelevancia(`${consulta} ${normalizada}`);
+        if (score < (codigoValido ? 4 : 6)) continue;
+
+        vistosGoogle.add(normalizada);
+        urls.push({ url: normalizada, score });
+      }
+    }
+
+    const ordenadas = urls
+      .sort((a, b) => b.score - a.score)
+      .map((item) => item.url);
+
+    if (limite === null) return ordenadas;
+    return ordenadas.slice(0, Math.max(5, limite));
+  }
+
+  async function buscarMelhoresImagensGoogleApi(consultas, limite = 12) {
+    if (!GOOGLE_CSE_API_KEY || !GOOGLE_CSE_CX) return [];
+
+    const resultados = [];
+    const vistosGoogleApi = new Set();
+    const consultasValidas = Array.from(new Set((Array.isArray(consultas) ? consultas : [])
+      .map((item) => String(item || '').trim())
+      .filter(Boolean)));
+
+    for (const consulta of consultasValidas) {
+      const paginas = limite === null ? 3 : Math.max(1, Math.min(3, Math.ceil(Math.max(5, limite) / 10)));
+
+      for (let pagina = 0; pagina < paginas; pagina += 1) {
+        const start = (pagina * 10) + 1;
+        const apiUrl = new URL('https://www.googleapis.com/customsearch/v1');
+        apiUrl.searchParams.set('key', GOOGLE_CSE_API_KEY);
+        apiUrl.searchParams.set('cx', GOOGLE_CSE_CX);
+        apiUrl.searchParams.set('searchType', 'image');
+        apiUrl.searchParams.set('safe', 'off');
+        apiUrl.searchParams.set('hl', 'pt-BR');
+        apiUrl.searchParams.set('num', '10');
+        apiUrl.searchParams.set('start', String(start));
+        apiUrl.searchParams.set('q', `${consulta} produto embalagem`);
+
+        const resposta = await fetch(apiUrl, {
+          signal: AbortSignal.timeout(5000),
+          headers: {
+            'User-Agent': 'Mozilla/5.0 TocaApp/1.0',
+          },
+        });
+
+        if (!resposta.ok) break;
+
+        const dados = await resposta.json();
+        const items = Array.isArray(dados && dados.items) ? dados.items : [];
+        if (!items.length) break;
+
+        for (const item of items) {
+          const link = String(item && item.link ? item.link : '').trim();
+          const titulo = String(item && item.title ? item.title : '').toLowerCase();
+          const snippet = String(item && item.snippet ? item.snippet : '').toLowerCase();
+          if (!link || vistosGoogleApi.has(link)) continue;
+
+          const score = pontuarRelevancia(`${consulta} ${titulo} ${snippet} ${link}`);
+          if (score < (codigoValido ? 4 : 6)) continue;
+
+          vistosGoogleApi.add(link);
+          resultados.push({ url: link, score });
+        }
+
+        if (items.length < 10) break;
+      }
+    }
+
+    const ordenadas = resultados
+      .sort((a, b) => b.score - a.score)
+      .map((item) => item.url);
+
+    if (limite === null) return ordenadas;
+    return ordenadas.slice(0, Math.max(5, limite));
+  }
+
+  function montarConsultasImagem() {
+    const consultas = [];
+    const adicionarConsulta = (partes) => {
+      const texto = partes
+        .map((parte) => String(parte || '').trim())
+        .filter(Boolean)
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (texto && !consultas.includes(texto)) consultas.push(texto);
+    };
+
+    adicionarConsulta([codigoInformado, nomeBusca, marcaBusca, saborBusca]);
+    adicionarConsulta([nomeBusca, marcaBusca, saborBusca, categoriaBusca]);
+    adicionarConsulta([codigoInformado, nomeBusca]);
+    adicionarConsulta([codigoInformado, marcaBusca]);
+    adicionarConsulta([nomeBusca, marcaBusca]);
+    adicionarConsulta([codigoInformado]);
+    adicionarConsulta([nomeBusca]);
+
+    return consultas;
+  }
+
   if (codigoValido) {
     try {
       const resposta = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(codigo)}.json`, {
@@ -1151,8 +1291,22 @@ app.get('/api/product-image-options', requireLogin, async (req, res) => {
     }
   }
 
-  const termoBusca = codigoInformado || nomeBusca || marcaBusca;
-  if (podeBuscarInternetPorTexto) {
+  const consultasImagem = montarConsultasImagem();
+  const termoBusca = consultasImagem[0] || codigoInformado || nomeBusca || marcaBusca;
+  if (podeBuscarInternet) {
+    try {
+      const limiteGoogle = semLimite ? null : (TOTAL_OPCOES_IMAGEM * 2);
+      let melhoresGoogle = await buscarMelhoresImagensGoogleApi(consultasImagem, limiteGoogle);
+      if (!melhoresGoogle.length) {
+        melhoresGoogle = await buscarMelhoresImagensGoogle(consultasImagem, limiteGoogle);
+      }
+      melhoresGoogle.forEach((url, idx) => adicionarOpcao(url, idx === 0 ? 'google-first' : 'google-related'));
+    } catch (error) {
+      // ignore
+    }
+  }
+
+  if (podeBuscarInternet) {
     try {
       const limiteBing = semLimite ? null : (TOTAL_OPCOES_IMAGEM * 2);
       const melhoresBing = await buscarMelhoresImagensBing(termoBusca, marcaBusca, saborBusca, categoriaBusca, limiteBing);
@@ -1162,7 +1316,7 @@ app.get('/api/product-image-options', requireLogin, async (req, res) => {
     }
   }
 
-  if (podeBuscarInternetPorTexto) {
+  if (podeBuscarInternet) {
     try {
       const queryWiki = `${termoBusca} ${marcaBusca} ${saborBusca} ${categoriaBusca} produto embalagem`.trim();
       const wikiLimitePagina = semLimite ? 50 : Math.min(50, Math.max(12, TOTAL_OPCOES_IMAGEM * 3));
