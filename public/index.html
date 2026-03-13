@@ -3132,6 +3132,10 @@
             atualizarClientesFiados();
             mostrarVendasParaEdicao();
 
+            if (vendaFiado) {
+                trocarAbaGestao('fiados');
+            }
+
             const tipoVenda = vendaFiado ? '(FIADO)' : `(${metodoPagamento.toUpperCase()})`;
             // mostrar número da venda para referência futura
             mostrarAlerta(`Venda finalizada! Nº ${venda.id} ${tipoVenda} Total: R$ ${total.toFixed(2)}`, 'sucesso');
@@ -4089,11 +4093,13 @@
         function salvarProdutos() {
             localStorage.setItem('produtos', JSON.stringify(produtos));
             agendarSalvarServidor();
+            salvarEstadoServidor({ forcar: true }).catch(() => {});
         }
 
         function salvarVendas() {
             localStorage.setItem('vendas', JSON.stringify(vendas));
             agendarSalvarServidor();
+            salvarEstadoServidor({ forcar: true }).catch(() => {});
         }
 
         // Fechar modais ao clicar fora
