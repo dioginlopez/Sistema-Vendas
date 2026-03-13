@@ -1590,6 +1590,10 @@
                 <input type="number" id="produtoPreco" placeholder="0.00" step="0.01" min="0">
             </div>
             <div class="form-group">
+                <label for="produtoCasco">Valor do Casco / Vasilhame (R$):</label>
+                <input type="number" id="produtoCasco" placeholder="0.00" step="0.01" min="0" value="0">
+            </div>
+            <div class="form-group">
                 <label for="produtoEstoque">Quantidade em Estoque:</label>
                 <input type="number" id="produtoEstoque" placeholder="0" min="0">
             </div>
@@ -3282,11 +3286,20 @@
             setTimeout(atualizarOpcoesPagamento, 100);
         }
 
+        function toggleCasco(produtoId, checked) {
+            const item = carrinho.find(i => idsProdutoIguais(i.id, produtoId));
+            if (item) { item.casco = checked; atualizarTotal(); }
+        }
+
         // Atualizar Total
         function atualizarTotal() {
             let subtotal = 0;
             carrinho.forEach(item => {
                 subtotal += item.preco * item.quantidade;
+                if (item.casco) {
+                    const prod = produtos.find(p => idsProdutoIguais(p.id, item.id));
+                    if (prod && prod.valorCasco > 0) subtotal += prod.valorCasco * item.quantidade;
+                }
             });
 
             const desconto = parseFloat(document.getElementById('desconto').value) || 0;
@@ -3393,6 +3406,15 @@
                     quantidade: item.quantidade,
                     preco: item.preco
                 });
+
+                if (item.casco && produto.valorCasco > 0) {
+                    subtotal += produto.valorCasco * item.quantidade;
+                    itensVenda.push({
+                        nome: `Casco - ${item.nome}`,
+                        quantidade: item.quantidade,
+                        preco: produto.valorCasco
+                    });
+                }
             }
 
             const desconto = parseFloat(document.getElementById('desconto').value) || 0;
@@ -3409,24 +3431,26 @@
                 vendaCounter++;
                 localStorage.setItem('vendaCounter', vendaCounter);
             }
-            const venda = {
-                id: idToUse,
-                data: new Date().toLocaleString('pt-BR'),
-                vendedor: usuarioLogado && usuarioLogado.nome ? usuarioLogado.nome : 'Nao informado',
-                cliente: nomeCliente,
-                fiado: vendaFiado,
-                metodoPagamento: vendaFiado ? 'Fiado' : metodoPagamento,
-                itens: itensVenda,
-                subtotal: subtotal,
-                desconto: desconto,
-                valorDesconto: valorDesconto,
-                total: total
-            };
-
-            vendas.unshift(venda);
-            salvarVendas();
-            salvarProdutos();
-
+                const cascoHtml = produto && produto.valorCasco > 0 ? `<div style="width:100%;margin-top:5px;padding-top:5px;border-top:1px dashed #ddd;flex-basis:100%;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.88em;color:#555;"><input type="checkbox" ${item.casco ? 'checked' : ''} onchange="toggleCasco('${itemIdArg}', this.checked)" style="cursor:pointer;width:16px;height:16px;"><span>🍺 Cliente levou o casco? (+R$ ${produto.valorCasco.toFixed(2)})</span></label></div>` : '';
+                const html = `
+                    <div class="carrinho-item" style="flex-wrap:wrap;">
+                        <div class="item-info">
+                            <div class="item-nome">${item.nome}</div>
+                            <div class="item-detalhes">
+                                R$ ${item.preco.toFixed(2)} × ${item.quantidade} = R$ ${precoItem.toFixed(2)}
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <div class="item-qtd">
+                                <button class="btn qtd-btn btn-secondary" onclick="mudarQuantidade('${itemIdArg}', -1)">-</button>
+                                <span class="qtd-input" style="border: none; background: transparent;">${item.quantidade}</span>
+                                <button class="btn qtd-btn btn-secondary" onclick="mudarQuantidade('${itemIdArg}', 1)">+</button>
+                            </div>
+                            <button class="btn btn-danger" style="padding: 8px 12px;" onclick="removerDoCarrinho('${itemIdArg}')">✕</button>
+                        </div>
+                        ${cascoHtml}
+                    </div>
+                `;
             carrinho = [];
             document.getElementById('desconto').value = 0;
             document.getElementById('nomeCliente').value = '';
@@ -3461,6 +3485,7 @@
             document.getElementById('produtoEstoque').value = '';
             document.getElementById('produtoCodigoBarras').value = '';
             document.getElementById('produtoMarca').value = '';
+            document.getElementById('produtoCasco').value = '0';
             atualizarPreviewImagemProduto('', 'Use "Buscar na Internet" para escolher uma imagem');
             const opcoesImagem = document.getElementById('produtoImagemOpcoes');
             if (opcoesImagem) opcoesImagem.innerHTML = '';
@@ -3489,6 +3514,7 @@
             document.getElementById('produtoEstoque').value = produto.estoque;
             document.getElementById('produtoCodigoBarras').value = produto.codigoBarras || '';
             document.getElementById('produtoMarca').value = produto.marca || '';
+            document.getElementById('produtoCasco').value = produto.valorCasco || 0;
             atualizarPreviewImagemProduto(produto.imagemUrl || '', produto.imagemUrl ? 'Imagem atual do produto' : 'Use "Buscar na Internet" para escolher uma imagem');
             const opcoesImagem = document.getElementById('produtoImagemOpcoes');
             if (opcoesImagem) opcoesImagem.innerHTML = '';
@@ -3507,6 +3533,7 @@
             const estoque = parseInt(document.getElementById('produtoEstoque').value);
             const codigoBarras = document.getElementById('produtoCodigoBarras').value.trim();
             const marca = String(document.getElementById('produtoMarca').value || '').trim();
+            const valorCasco = parseFloat(document.getElementById('produtoCasco').value) || 0;
             let imagemUrl = document.getElementById('produtoImagemUrl').value.trim();
             const categoria = document.getElementById('produtoCategoria').value;
 
@@ -3533,6 +3560,7 @@
                 produtoEmEdicao.marca = marca || undefined;
                 produtoEmEdicao.imagemUrl = imagemUrl || undefined;
                 produtoEmEdicao.categoria = categoria;
+                produtoEmEdicao.valorCasco = valorCasco > 0 ? valorCasco : undefined;
                 mostrarAlerta('Produto atualizado com sucesso', 'sucesso');
             } else {
                 const novoProduto = {
@@ -3543,7 +3571,8 @@
                     codigoBarras: codigoBarras || undefined,
                     marca: marca || undefined,
                     imagemUrl: imagemUrl || undefined,
-                    categoria: categoria
+                    categoria: categoria,
+                    valorCasco: valorCasco > 0 ? valorCasco : undefined
                 };
                 produtos.push(novoProduto);
                 mostrarAlerta('Produto adicionado com sucesso', 'sucesso');
