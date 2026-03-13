@@ -2007,10 +2007,14 @@
                     body: serializado,
                     keepalive: usarKeepAlive,
                 });
-                if (!resposta.ok) return;
+                if (!resposta.ok) {
+                    console.error('[Toca] Falha ao salvar no servidor:', resposta.status);
+                    return;
+                }
                 ultimoEstadoServidorSerializado = serializado;
             } catch (erro) {
                 // Falha de rede: mantém dados locais e tenta novamente no próximo ciclo.
+                console.error('[Toca] Erro de rede ao salvar:', erro.message);
             }
         }
 
@@ -2054,10 +2058,24 @@
                     return false;
                 }
 
+                // Mesclar vendas locais que ainda não chegaram ao servidor
+                const vendasLocal = JSON.parse(localStorage.getItem('vendas') || '[]');
+                const idsServidor = new Set(dados.vendas.map(v => v.id));
+                const vendasExtras = vendasLocal.filter(v => !idsServidor.has(v.id));
+                const vendasMescladas = vendasExtras.length > 0
+                    ? [...vendasExtras, ...dados.vendas].sort((a, b) => b.id - a.id)
+                    : dados.vendas;
+
                 produtos = dados.produtos;
-                vendas = dados.vendas;
+                vendas = vendasMescladas;
                 associados = dados.associados;
                 vendaCounter = parseInt(dados.vendaCounter) || 1;
+
+                // Se havia vendas locais não salvas, elevar o contador
+                if (vendasMescladas.length > 0) {
+                    const maxId = vendasMescladas.reduce((m, v) => v.id > m ? v.id : m, 0);
+                    if (maxId >= vendaCounter) vendaCounter = maxId + 1;
+                }
 
                 localStorage.setItem('produtos', JSON.stringify(produtos));
                 localStorage.setItem('vendas', JSON.stringify(vendas));
@@ -2071,6 +2089,12 @@
                 }
 
                 ultimoEstadoServidorSerializado = JSON.stringify(obterEstadoAtualSistema());
+
+                // Se havia vendas extras locais, forçar novo envio ao servidor
+                if (vendasExtras.length > 0) {
+                    salvarEstadoServidor({ forcar: true }).catch(() => {});
+                }
+
                 return true;
             } catch (erro) {
                 return false;
