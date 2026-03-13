@@ -1507,7 +1507,7 @@
                         <div class="form-group" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
                             <input type="text" id="novoAssociadoNome" placeholder="Nome completo" class="form-control" style="flex:2;min-width:200px;">
                             <select id="novoAssociadoPosto" class="form-control" style="flex:1;min-width:170px;" required>
-                                <option value="">Graduação Militar</option>
+                                <option value="">Graduação</option>
                                 <option value="SD">SD</option>
                                 <option value="CB">CB</option>
                                 <option value="3º SGT">3º SGT</option>
@@ -1515,14 +1515,18 @@
                                 <option value="1º SGT">1º SGT</option>
                                 <option value="ST">ST</option>
                                 <option value="TEN">TEN</option>
+                                <option value="CAP">CAP</option>
                                 <option value="MAJ">MAJ</option>
                                 <option value="TC">TC</option>
+                                <option value="R1">R1</option>
                                 <option value="CIVIL">CIVIL</option>
                             </select>
                             <select id="novoAssociadoVinculo" class="form-control" style="flex:1;min-width:170px;">
                                 <option value="">Trabalha no clube/diretoria? (opcional)</option>
                                 <option value="CLUBE">CLUBE</option>
                                 <option value="DIRETORIA">DIRETORIA</option>
+                                <option value="PRESIDENTE">PRESIDENTE</option>
+                                <option value="EX-PRESIDENTE">EX-PRESIDENTE</option>
                             </select>
                             <input type="password" id="novoAssociadoSenha" placeholder="Senha" class="form-control" style="flex:1;min-width:150px;">
                             <input type="text" id="novoAssociadoTel" placeholder="Telefone (opcional)" class="form-control" style="flex:1;min-width:150px;">
@@ -4044,8 +4048,8 @@
                 const associado = associados.find((a) => String(a.nome || '').trim().toUpperCase() === nomeBase);
                 const graduacao = String(associado && associado.posto ? associado.posto : '').trim().toUpperCase();
                 const vinculo = String(associado && associado.vinculo ? associado.vinculo : 'NAO').trim().toUpperCase() || 'NAO';
-                const vinculoTemClube = vinculo.includes('CLUBE');
-                const mensalidade = vinculoTemClube
+                const temVinculo = vinculo !== 'NAO' && vinculo !== '';
+                const mensalidade = temVinculo
                     ? 0
                     : (graduacao === 'CIVIL' ? 50 : 30);
 
