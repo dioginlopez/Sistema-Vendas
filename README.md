@@ -119,6 +119,38 @@ Observacoes:
 
 ## Deploy
 
+## Backend PHP alternativo
+
+O frontend atual tambem pode rodar com backend em PHP sem reescrever as telas HTML/JS.
+
+Arquivos adicionados para isso:
+
+- `.htaccess`: redireciona rotas para `index.php`
+- `index.php`: front controller com login, sessao, CSRF, usuarios, estado, produtos, backups e imagens
+
+### Requisitos PHP
+
+- PHP 8.1+
+- extensao `pdo_pgsql` habilitada para PostgreSQL
+- extensao `curl` recomendada para proxy/download de imagens
+
+### Variaveis esperadas no PHP
+
+- `DATABASE_URL`: conexao PostgreSQL
+- `DB_FILE`: fallback local em JSON
+- `BACKUP_DIR`: pasta de backups
+- `BOOTSTRAP_ADMIN_CPF`: CPF do admin inicial
+- `BOOTSTRAP_ADMIN_SENHA`: senha do admin inicial
+- `BOOTSTRAP_ADMIN_NOME`: nome do admin inicial
+- `PASSWORD_HASH_ROUNDS`: custo do bcrypt
+
+### Observacoes da migracao
+
+- As URLs do frontend foram preservadas: `/login`, `/logout`, `/api/me`, `/api/state`, `/api/users`, `/api/backups`, `/api/products`.
+- As paginas continuam em `public/` e sao servidas pelo `index.php`.
+- Se `DATABASE_URL` estiver configurada, o estado passa a ser salvo no PostgreSQL e tambem no `db.json` como fallback local.
+- Hashes bcrypt existentes do Node continuam aceitos no login.
+
 ### Railway
 
 1. `New Project` > `Deploy from GitHub repo`
