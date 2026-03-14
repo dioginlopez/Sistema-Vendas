@@ -259,7 +259,9 @@
           throw new Error(dados.error || 'Não foi possível entrar no sistema');
         }
 
-        window.TocaSession.setBrowserSessionKey(dados.browserSessionKey || '');
+        const browserSessionKey = String(dados.browserSessionKey || '').trim()
+          || window.TocaSession.ensureBrowserSessionKey();
+        window.TocaSession.setBrowserSessionKey(browserSessionKey);
         const destino = dados.redirect || '/';
         // replace evita voltar para o login ao usar botão "voltar" após autenticar
         window.location.replace(destino);

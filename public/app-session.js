@@ -72,6 +72,21 @@
     return getBrowserSessionKey() !== '';
   }
 
+  function createBrowserSessionKey() {
+    if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+      return window.crypto.randomUUID();
+    }
+    return `${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+  }
+
+  function ensureBrowserSessionKey() {
+    const existing = getBrowserSessionKey();
+    if (existing) {
+      return existing;
+    }
+    return setBrowserSessionKey(createBrowserSessionKey());
+  }
+
   function installCsrfFetch(getToken) {
     if (window.__tocaFetchInstalled) {
       return;
@@ -113,6 +128,7 @@
     setBrowserSessionKey,
     clearBrowserSessionKey,
     hasBrowserSessionKey,
+    ensureBrowserSessionKey,
     installCsrfFetch,
   };
 })();

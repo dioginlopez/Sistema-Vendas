@@ -243,8 +243,8 @@
       window.location.replace('/login.html');
     }
 
-    if (!window.TocaSession.hasBrowserSessionKey()) {
-      redirecionarParaLogin();
+    if (window.TocaSession && typeof window.TocaSession.ensureBrowserSessionKey === 'function') {
+      window.TocaSession.ensureBrowserSessionKey();
     }
 
     window.TocaSession.installCsrfFetch(() => '');

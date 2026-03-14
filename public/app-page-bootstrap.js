@@ -42,11 +42,8 @@
   async function bootAuthenticatedPage(options) {
     const opts = options || {};
 
-    if (window.TocaSession && typeof window.TocaSession.hasBrowserSessionKey === 'function' && !window.TocaSession.hasBrowserSessionKey()) {
-      if (typeof opts.onSessionInvalid === 'function') {
-        opts.onSessionInvalid();
-      }
-      return false;
+    if (window.TocaSession && typeof window.TocaSession.ensureBrowserSessionKey === 'function') {
+      window.TocaSession.ensureBrowserSessionKey();
     }
 
     window.addEventListener('offline', () => {

@@ -157,6 +157,18 @@ function ensureSessionCsrfToken(req) {
   return req.session.csrfToken;
 }
 
+function ensureBrowserSessionKey(req) {
+  if (!req.session) {
+    return '';
+  }
+
+  if (!req.session.browserSessionKey) {
+    req.session.browserSessionKey = crypto.randomBytes(24).toString('hex');
+  }
+
+  return req.session.browserSessionKey;
+}
+
 function extractRequestCsrfToken(req) {
   const headerToken = String(req.get('x-csrf-token') || '').trim();
   if (headerToken) {
@@ -842,8 +854,9 @@ app.post('/login', async (req, res) => {
         cpf: user.cpf,
         perfil: user.perfil || 'operador',
       };
+      const browserSessionKey = ensureBrowserSessionKey(req);
       if (esperaJson) {
-        return res.json({ ok: true, redirect: '/' });
+        return res.json({ ok: true, redirect: '/', browserSessionKey });
       }
       return res.redirect('/');
     }
@@ -874,7 +887,11 @@ app.post('/logout-beacon', requireLogin, requireCsrf, (req, res) => {
 });
 
 app.get('/api/me', requireLogin, (req, res) => {
-  res.json({ user: req.session.user || null, csrfToken: ensureSessionCsrfToken(req) });
+  res.json({
+    user: req.session.user || null,
+    csrfToken: ensureSessionCsrfToken(req),
+    browserSessionKey: ensureBrowserSessionKey(req),
+  });
 });
 
 app.get('/api/users', requireLogin, requireAdmin, async (req, res) => {
