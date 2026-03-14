@@ -42,6 +42,13 @@
   async function bootAuthenticatedPage(options) {
     const opts = options || {};
 
+    if (window.TocaSession && typeof window.TocaSession.hasBrowserSessionKey === 'function' && !window.TocaSession.hasBrowserSessionKey()) {
+      if (typeof opts.onSessionInvalid === 'function') {
+        opts.onSessionInvalid();
+      }
+      return false;
+    }
+
     window.addEventListener('offline', () => {
       if (typeof opts.onOffline === 'function') {
         opts.onOffline();

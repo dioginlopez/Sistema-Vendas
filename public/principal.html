@@ -237,10 +237,17 @@
     <p class="build" id="buildInfo">Versao: carregando...</p>
   </div>
 
+  <script src="app-session.js"></script>
   <script>
     function redirecionarParaLogin() {
       window.location.replace('/login.html');
     }
+
+    if (!window.TocaSession.hasBrowserSessionKey()) {
+      redirecionarParaLogin();
+    }
+
+    window.TocaSession.installCsrfFetch(() => '');
 
     function navegacaoEhRecarregamento() {
       const nav = performance.getEntriesByType('navigation');

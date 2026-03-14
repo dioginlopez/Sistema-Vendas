@@ -1,4 +1,6 @@
 (function () {
+  const BROWSER_SESSION_STORAGE_KEY = 'tocaBrowserSessionKey';
+
   function respostaIndicaSessaoExpirada(resposta, contentType) {
     if (!resposta) return false;
     if (resposta.status === 401) return true;
@@ -36,6 +38,40 @@
       : finalUrl.toString();
   }
 
+  function getBrowserSessionKey() {
+    try {
+      return String(window.sessionStorage.getItem(BROWSER_SESSION_STORAGE_KEY) || '').trim();
+    } catch (error) {
+      return '';
+    }
+  }
+
+  function setBrowserSessionKey(value) {
+    const browserSessionKey = String(value || '').trim();
+    try {
+      if (!browserSessionKey) {
+        window.sessionStorage.removeItem(BROWSER_SESSION_STORAGE_KEY);
+        return '';
+      }
+      window.sessionStorage.setItem(BROWSER_SESSION_STORAGE_KEY, browserSessionKey);
+      return browserSessionKey;
+    } catch (error) {
+      return browserSessionKey;
+    }
+  }
+
+  function clearBrowserSessionKey() {
+    try {
+      window.sessionStorage.removeItem(BROWSER_SESSION_STORAGE_KEY);
+    } catch (error) {
+      // Ignore storage failures.
+    }
+  }
+
+  function hasBrowserSessionKey() {
+    return getBrowserSessionKey() !== '';
+  }
+
   function installCsrfFetch(getToken) {
     if (window.__tocaFetchInstalled) {
       return;
@@ -48,12 +84,18 @@
       const url = typeof input === 'string' ? input : String(input && input.url ? input.url : '');
       const sameOrigin = !url || url.startsWith('/') || url.startsWith(window.location.origin);
       const csrfToken = typeof getToken === 'function' ? String(getToken() || '').trim() : '';
+      const browserSessionKey = getBrowserSessionKey();
+      const headers = new Headers(options.headers || (input && typeof input === 'object' ? input.headers : undefined));
+
+      if (sameOrigin && browserSessionKey) {
+        headers.set('X-Browser-Session', browserSessionKey);
+      }
 
       if (sameOrigin && !['GET', 'HEAD', 'OPTIONS'].includes(method) && csrfToken) {
-        const headers = new Headers(options.headers || (input && typeof input === 'object' ? input.headers : undefined));
         headers.set('X-CSRF-Token', csrfToken);
-        options.headers = headers;
       }
+
+      options.headers = headers;
 
       return originalFetch(input, options);
     };
@@ -67,6 +109,10 @@
     criarErroSessaoExpirada,
     erroEhSessaoExpirada,
     montarUrlComCsrf,
+    getBrowserSessionKey,
+    setBrowserSessionKey,
+    clearBrowserSessionKey,
+    hasBrowserSessionKey,
     installCsrfFetch,
   };
 })();

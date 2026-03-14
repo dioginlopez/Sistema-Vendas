@@ -396,10 +396,11 @@ final class TocaApp
                     'cpf' => $user['cpf'],
                     'perfil' => $user['perfil'] ?? 'operador',
                 ];
+                $browserSessionKey = $this->issueBrowserSessionKey();
                 $this->ensureSessionCsrfToken();
 
                 if ($expectsJson) {
-                    $this->jsonResponse(['ok' => true, 'redirect' => '/']);
+                    $this->jsonResponse(['ok' => true, 'redirect' => '/', 'browserSessionKey' => $browserSessionKey]);
                 }
                 $this->redirect('/');
             }
@@ -1155,6 +1156,10 @@ final class TocaApp
                 'perfil' => $fallback['perfil'] ?? 'operador',
             ];
         }
+
+        if (str_starts_with($path, '/api/')) {
+            $this->requireBrowserSessionKey();
+        }
     }
 
     private function requireAdmin(): void
@@ -1174,6 +1179,30 @@ final class TocaApp
             $_SESSION['csrfToken'] = bin2hex(random_bytes(24));
         }
         return $_SESSION['csrfToken'];
+    }
+
+    private function issueBrowserSessionKey(): string
+    {
+        $key = bin2hex(random_bytes(24));
+        $_SESSION['browserSessionKey'] = $key;
+        return $key;
+    }
+
+    private function requireBrowserSessionKey(): void
+    {
+        $sessionKey = (string) ($_SESSION['browserSessionKey'] ?? '');
+        $requestKey = trim((string) ($this->getHeader('X-Browser-Session') ?? ''));
+
+        if ($sessionKey === '') {
+            $sessionKey = $this->issueBrowserSessionKey();
+        }
+
+        if ($requestKey !== '' && hash_equals($sessionKey, $requestKey)) {
+            return;
+        }
+
+        $this->destroySession();
+        $this->jsonResponse(['error' => 'Sessao expirada. Faca login novamente.'], 401);
     }
 
     private function requireCsrf(): void

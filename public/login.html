@@ -181,6 +181,7 @@
     <div class="login-footer">© 2026 Quantum and time - Todos os direitos reservados.</div>
   </div>
 
+  <script src="app-session.js"></script>
   <script>
     const form = document.getElementById('loginForm');
     const erroBox = document.getElementById('loginErro');
@@ -192,6 +193,7 @@
 
     // Limpa possíveis valores restaurados automaticamente pelo navegador.
     form.reset();
+    window.TocaSession.clearBrowserSessionKey();
     cpfInput.value = '';
     senhaInput.value = '';
     cpfInput.focus();
@@ -257,6 +259,7 @@
           throw new Error(dados.error || 'Não foi possível entrar no sistema');
         }
 
+        window.TocaSession.setBrowserSessionKey(dados.browserSessionKey || '');
         const destino = dados.redirect || '/';
         // replace evita voltar para o login ao usar botão "voltar" após autenticar
         window.location.replace(destino);
