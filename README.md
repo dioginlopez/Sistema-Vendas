@@ -87,6 +87,8 @@ http://localhost:3000
 - `AUTO_BACKUP_INTERVAL_MINUTES`: intervalo do backup automatico em minutos (padrao `1440`, 1x por dia; `0` desativa)
 - `AUTO_BACKUP_RETENTION`: quantidade maxima de backups mantidos (padrao `30`)
 - `AUTO_BACKUP_ON_START`: cria backup apos iniciar servidor (`true`/`false`, padrao `true`)
+- `STATE_PAYLOAD_LIMIT`: limite do payload JSON aceito nas rotas de estado (`10mb` por padrao)
+- `PASSWORD_HASH_ROUNDS`: custo do hash bcryptjs para senhas (`10` por padrao)
 - `BACKUP_DIR`: pasta dos backups (opcional; se omitido, usa pasta gravavel automatica)
 - `GOOGLE_CSE_API_KEY`: chave da API do Google Custom Search para busca estavel de imagens
 - `GOOGLE_CSE_CX`: identificador do mecanismo de busca customizado com pesquisa de imagens habilitada
@@ -150,7 +152,7 @@ Para primeiro acesso em deploy novo, adicione tambem:
 
 Depois do primeiro login e criacao de usuarios reais, voce pode remover `BOOTSTRAP_ADMIN_SENHA`.
 
-Se aparecer `Credenciais inválidas` no Render, mantendo essas variaveis configuradas, o backend agora recria/reativa automaticamente o admin bootstrap no login.
+Se nao houver nenhum admin ativo no banco e essas variaveis estiverem configuradas, o backend recria/reativa automaticamente o admin bootstrap no login.
 
 ### Render (Blueprint 1-clique)
 
@@ -214,3 +216,5 @@ Suba apenas `db.example.json` como modelo.
 - Nao manter senha padrao em producao
 - Manter pelo menos um usuario admin ativo
 - Rotacionar senhas periodicamente
+- As senhas locais sao migradas automaticamente para hash bcryptjs no primeiro carregamento do servidor
+- Rotas de escrita exigem token CSRF da sessao atual; se a tela ficar aberta por muito tempo, recarregue antes de tentar salvar novamente

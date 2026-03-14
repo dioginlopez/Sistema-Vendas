@@ -6,6 +6,7 @@
   "ext": "js",
   "ignore": [
     "db.json",
+    "backups/**",
     "public/**",
     ".vscode/**",
     "Git/**"

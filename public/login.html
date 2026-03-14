@@ -64,6 +64,33 @@
       margin-bottom: 18px;
     }
 
+    .login-hints {
+      display: grid;
+      gap: 6px;
+      margin: 0 0 14px 0;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(15, 118, 110, 0.2);
+      background: rgba(20, 184, 166, 0.08);
+      color: #23435f;
+      font-size: 0.84rem;
+    }
+
+    .login-hints div {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .caps-lock-warning {
+      display: none;
+      margin-top: -6px;
+      margin-bottom: 10px;
+      color: #b45309;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
     .field {
       position: relative;
     }
@@ -123,6 +150,10 @@
     <img class="login-logo" src="https://csspp.quantumandtime.com.br/assets/imgs/11-rc-mec-logo.png" alt="Símbolo CSSPP">
     <h1 class="login-title text-center"><i class="bi bi-shield-lock-fill" aria-hidden="true"></i> Sistema de controle de vendas</h1>
     <p class="login-subtitle text-center">Clube dos Subtenentes e Sargentos do 11º RC MEC</p>
+    <div class="login-hints" aria-hidden="true">
+      <div><i class="bi bi-info-circle" aria-hidden="true"></i> Use apenas números no CPF, a máscara é aplicada automaticamente.</div>
+      <div><i class="bi bi-keyboard" aria-hidden="true"></i> Pressione Enter após a senha para entrar mais rápido.</div>
+    </div>
     <div id="loginErro" class="alert alert-danger" style="display:none; padding:8px 10px; margin-bottom:12px;"></div>
     <form id="loginForm" method="post" action="/login" autocomplete="off">
       <div class="mb-3">
@@ -139,6 +170,7 @@
           <input type="password" id="senhaInput" name="senha" class="form-control" required autocomplete="new-password">
         </div>
       </div>
+      <div id="capsLockWarning" class="caps-lock-warning"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> Caps Lock está ativado.</div>
       <label class="mostrar-senha" for="mostrarSenhaInput">
         <input type="checkbox" id="mostrarSenhaInput">
         Mostrar senha
@@ -155,11 +187,13 @@
     const cpfInput = document.getElementById('cpfInput');
     const senhaInput = document.getElementById('senhaInput');
     const mostrarSenhaInput = document.getElementById('mostrarSenhaInput');
+    const capsLockWarning = document.getElementById('capsLockWarning');
 
     // Limpa possíveis valores restaurados automaticamente pelo navegador.
     form.reset();
     cpfInput.value = '';
     senhaInput.value = '';
+    cpfInput.focus();
 
     function formatCpf(value) {
       const digits = String(value || '').replace(/\D/g, '').slice(0, 11);
@@ -181,6 +215,17 @@
 
     mostrarSenhaInput.addEventListener('change', () => {
       senhaInput.type = mostrarSenhaInput.checked ? 'text' : 'password';
+    });
+
+    function atualizarAvisoCapsLock(event) {
+      const ativo = Boolean(event && event.getModifierState && event.getModifierState('CapsLock'));
+      capsLockWarning.style.display = ativo ? 'block' : 'none';
+    }
+
+    senhaInput.addEventListener('keydown', atualizarAvisoCapsLock);
+    senhaInput.addEventListener('keyup', atualizarAvisoCapsLock);
+    senhaInput.addEventListener('blur', () => {
+      capsLockWarning.style.display = 'none';
     });
 
     form.addEventListener('submit', async (event) => {

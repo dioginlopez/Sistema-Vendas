@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
+const crypto = require('crypto');
 const { Low } = require('lowdb');
 const { JSONFile } = require('lowdb/node');
 const { Pool } = require('pg');
 const path = require('path');
 const fs = require('fs');
-const { nanoid } = require('nanoid');
 
 const DATABASE_URL = String(process.env.DATABASE_URL || '').trim();
 function resolveWritableDbFile() {
@@ -58,6 +58,49 @@ if (DATABASE_URL) {
   }
 }
 
+function normalizePositiveNumber(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return null;
+  }
+  return parsed;
+}
+
+function normalizeNonNegativeInteger(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return null;
+  }
+  return Math.trunc(parsed);
+}
+
+function normalizeOptionalText(value) {
+  const normalized = String(value || '').trim();
+  return normalized || undefined;
+}
+
+function normalizeProductPayload(body, currentProduct) {
+  const source = body && typeof body === 'object' ? body : {};
+  const nome = String(source.nome ?? source.name ?? '').trim();
+  const preco = normalizePositiveNumber(source.preco ?? source.price);
+  const estoque = normalizeNonNegativeInteger(source.estoque ?? source.stock);
+
+  if (!nome || preco === null || estoque === null) {
+    return { error: 'Produto inválido: informe nome, preco e estoque válidos' };
+  }
+
+  return {
+    id: currentProduct ? currentProduct.id : (source.id ?? crypto.randomUUID()),
+    nome,
+    preco,
+    estoque,
+    codigoBarras: normalizeOptionalText(source.codigoBarras),
+    categoria: normalizeOptionalText(source.categoria),
+    marca: normalizeOptionalText(source.marca),
+    imagemUrl: normalizeOptionalText(source.imagemUrl),
+  };
+}
+
 async function syncProductsToPg(products) {
   if (!pgPool) {
     return;
@@ -97,6 +140,16 @@ function requireAdmin(req, res, next) {
   return res.status(403).json({ error: 'Acesso permitido apenas para administrador' });
 }
 
+function requireCsrf(req, res, next) {
+  const sessionToken = String(req.session && req.session.csrfToken ? req.session.csrfToken : '').trim();
+  const requestToken = String(req.get('x-csrf-token') || req.query.csrfToken || '').trim();
+  if (sessionToken && requestToken && sessionToken === requestToken) {
+    return next();
+  }
+
+  return res.status(403).json({ error: 'Falha de validacao da sessao. Atualize a pagina e tente novamente.' });
+}
+
 // middleware to ensure db loaded
 router.use(async (req, res, next) => {
   await db.read();
@@ -114,6 +167,12 @@ router.use(async (req, res, next) => {
     }
   }
 
+  db.data.products = Array.isArray(db.data.products)
+    ? db.data.products
+      .map((product) => normalizeProductPayload(product, product))
+      .filter((product) => !product.error)
+    : [];
+
   next();
 });
 
@@ -130,9 +189,11 @@ router.get('/:id', (req, res) => {
 });
 
 // create product
-router.post('/', requireAdmin, async (req, res) => {
-  const { name, price, stock } = req.body;
-  const newProd = { id: nanoid(), name, price: parseFloat(price), stock: parseInt(stock, 10) };
+router.post('/', requireAdmin, requireCsrf, async (req, res) => {
+  const newProd = normalizeProductPayload(req.body || null, null);
+  if (newProd.error) {
+    return res.status(400).json({ error: newProd.error });
+  }
   db.data.products.push(newProd);
   await db.write();
   await syncProductsToPg(db.data.products);
@@ -140,20 +201,25 @@ router.post('/', requireAdmin, async (req, res) => {
 });
 
 // update product
-router.put('/:id', requireAdmin, async (req, res) => {
-  const { name, price, stock } = req.body;
+router.put('/:id', requireAdmin, requireCsrf, async (req, res) => {
   const prod = db.data.products.find(p => p.id === req.params.id);
   if (!prod) return res.status(404).json({ error: 'Product not found' });
-  prod.name = name;
-  prod.price = parseFloat(price);
-  prod.stock = parseInt(stock, 10);
+  const normalized = normalizeProductPayload(req.body || null, prod);
+  if (normalized.error) {
+    return res.status(400).json({ error: normalized.error });
+  }
+
+  Object.keys(prod).forEach((key) => {
+    delete prod[key];
+  });
+  Object.assign(prod, normalized);
   await db.write();
   await syncProductsToPg(db.data.products);
   res.json(prod);
 });
 
 // delete product
-router.delete('/:id', requireAdmin, async (req, res) => {
+router.delete('/:id', requireAdmin, requireCsrf, async (req, res) => {
   const index = db.data.products.findIndex(p => p.id === req.params.id);
   if (index === -1) return res.status(404).json({ error: 'Product not found' });
   db.data.products.splice(index, 1);

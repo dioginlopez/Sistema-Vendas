@@ -737,6 +737,58 @@
             margin: 0;
         }
 
+        .sticky-actions {
+            position: sticky;
+            top: 8px;
+            z-index: 6;
+            padding: 10px;
+            margin: 0 0 12px 0;
+            border-radius: 10px;
+            border: 1px solid rgba(15, 118, 110, 0.18);
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(6px);
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+        }
+
+        .sticky-actions .form-group {
+            margin-bottom: 10px;
+        }
+
+        .sticky-actions .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .sticky-actions-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .sticky-actions-title {
+            font-size: 0.85rem;
+            color: #0f4f4b;
+            font-weight: 800;
+            letter-spacing: 0.01em;
+        }
+
+        .sticky-toggle-btn {
+            width: auto;
+            margin-top: 0;
+            padding: 6px 10px;
+            font-size: 0.8rem;
+            line-height: 1.1;
+        }
+
+        .sticky-actions.collapsed .sticky-actions-content {
+            display: none;
+        }
+
+        .sticky-actions.collapsed {
+            padding-bottom: 10px;
+        }
+
         .principal-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -970,6 +1022,52 @@
             background: rgba(20, 184, 166, 0.12);
             color: #0b5250;
             border-bottom-color: #14b8a6;
+        }
+
+        .quick-guide {
+            background: linear-gradient(135deg, rgba(15, 118, 110, 0.08), rgba(20, 184, 166, 0.16));
+            border: 1px solid rgba(15, 118, 110, 0.22);
+            border-radius: 12px;
+            padding: 12px;
+            margin: 0 0 14px 0;
+        }
+
+        .quick-guide h3 {
+            margin: 0 0 8px 0;
+            color: #0f4f4b;
+            font-size: 0.98rem;
+        }
+
+        .quick-steps {
+            display: grid;
+            gap: 6px;
+            color: #23435f;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+        }
+
+        .quick-step {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .quick-step i {
+            color: #0f766e;
+        }
+
+        .context-chip {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(15, 118, 110, 0.25);
+            border-radius: 999px;
+            padding: 7px 12px;
+            font-size: 0.85rem;
+            color: #0f2942;
+            width: fit-content;
+        }
+
+        .context-chip strong {
+            color: #0f766e;
         }
 
         input,
@@ -1232,6 +1330,16 @@
                 <button class="btn btn-secondary" onclick="window.location.href='principal.html'" style="margin: 10px 0 10px 0; width: 100%;"><i class="bi bi-compass" aria-hidden="true"></i> Ir para Principal</button>
                 <button class="btn btn-secondary" onclick="window.location.href='/app/visao'" style="margin: 10px 0 15px 0; width: 100%;">Ir para Gestão de Estoque</button>
 
+                <div class="quick-guide">
+                    <h3><i class="bi bi-signpost-2" aria-hidden="true"></i> Fluxo rápido de venda</h3>
+                    <div class="quick-steps">
+                        <div class="quick-step"><i class="bi bi-1-circle" aria-hidden="true"></i> Abra <strong>Produtos</strong> e adicione itens.</div>
+                        <div class="quick-step"><i class="bi bi-2-circle" aria-hidden="true"></i> Revise no carrinho e confirme pagamento.</div>
+                        <div class="quick-step"><i class="bi bi-3-circle" aria-hidden="true"></i> Use <strong>Editar Venda</strong> para corrigir rapidamente.</div>
+                    </div>
+                    <div id="contextoAtualVendas" class="context-chip">Você está em: <strong>Produtos + Carrinho</strong></div>
+                </div>
+
                 <div class="tabs">
                     <button class="tab-btn ativo" data-aba="estoque" onclick="trocarAba('estoque', this)">Produtos</button>
                     <button class="tab-btn" data-aba="categoriaProdutos" onclick="trocarAba('categoriaProdutos', this)">Categoria dos Produtos</button>
@@ -1242,13 +1350,15 @@
                 <div class="venda-operacao-layout">
                 <!-- Aba de Estoque -->
                 <div id="estoque" class="tab-content ativo">
-                    <div class="form-group">
-                        <input type="text" id="pesquisaProduto" placeholder="Pesquisar produto por nome ou categoria..." onkeyup="filtrarProdutos()" style="margin-bottom: 10px;">
-                        <input type="text" id="pesquisaCodigoBarras" placeholder="Ou pesquisar somente por código de barras" inputmode="numeric" onkeyup="filtrarProdutos()" style="margin-bottom: 20px;">
-                    </div>
-                    <div class="form-group" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom: 12px;">
-                        <input type="text" id="codigoBarrasVenda" class="form-control" placeholder="Leitura rápida por código de barras" style="flex:2;min-width:220px;" oninput="tentarAdicionarPorCodigoBarrasAutomatico()" onkeydown="if(event.key==='Enter'){event.preventDefault();adicionarPorCodigoBarras();}">
-                        <button class="btn btn-secondary" style="width:auto;margin-top:0;padding:10px 14px;" onclick="adicionarPorCodigoBarras()"><i class="bi bi-upc-scan" aria-hidden="true"></i> Ler Código</button>
+                    <div class="sticky-actions">
+                        <div class="form-group">
+                            <input type="text" id="pesquisaProduto" placeholder="Pesquisar produto por nome ou categoria..." onkeyup="filtrarProdutos()" style="margin-bottom: 10px;">
+                            <input type="text" id="pesquisaCodigoBarras" placeholder="Ou pesquisar somente por código de barras" inputmode="numeric" onkeyup="filtrarProdutos()" style="margin-bottom: 20px;">
+                        </div>
+                        <div class="form-group" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom: 12px;">
+                            <input type="text" id="codigoBarrasVenda" class="form-control" placeholder="Leitura rápida por código de barras" style="flex:2;min-width:220px;" oninput="tentarAdicionarPorCodigoBarrasAutomatico()" onkeydown="if(event.key==='Enter'){event.preventDefault();adicionarPorCodigoBarras();}">
+                            <button class="btn btn-secondary" style="width:auto;margin-top:0;padding:10px 14px;" onclick="adicionarPorCodigoBarras()"><i class="bi bi-upc-scan" aria-hidden="true"></i> Ler Código</button>
+                        </div>
                     </div>
                     <div class="produtos-list" id="produtosLista"></div>
                 </div>
@@ -1311,7 +1421,7 @@
 
                 <div id="categoriaProdutos" class="tab-content" style="padding:20px;">
                     <h3>Categorias dos Produtos</h3>
-                    <div class="form-group" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;">
+                    <div class="form-group sticky-actions" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;">
                         <div style="flex:2;min-width:220px;">
                             <label for="pesquisaCategoriaProdutos">Pesquisar produto</label>
                             <input type="text" id="pesquisaCategoriaProdutos" class="form-control" placeholder="Nome ou código de barras" oninput="atualizarCategoriaProdutos()">
@@ -1332,7 +1442,7 @@
                 <!-- Aba de Editar Venda -->
                 <div id="editarVenda" class="tab-content" style="padding:20px;">
                     <h3>Vendas cadastradas</h3>
-                    <div style="margin-bottom:10px;">
+                    <div class="sticky-actions" style="margin-bottom:10px;">
                         <label for="numeroVendaInput">Número da venda:</label>
                         <input type="text" id="numeroVendaInput" class="form-control" style="width:200px; display:inline-block; margin-left:8px;" onkeyup="filtrarVendasPorNumero()">
                         <button class="btn btn-primary" style="margin-left:6px;" onclick="carregarVendaPorNumero()">Carregar</button>
@@ -1350,6 +1460,16 @@
             <div class="panel gestao-panel">
                 <h2>Gestão de Estoque</h2>
 
+                <div class="quick-guide">
+                    <h3><i class="bi bi-compass" aria-hidden="true"></i> Onde encontrar cada ação</h3>
+                    <div class="quick-steps">
+                        <div class="quick-step"><i class="bi bi-box-seam" aria-hidden="true"></i> <strong>Estoque</strong>: cadastrar e ajustar produtos.</div>
+                        <div class="quick-step"><i class="bi bi-receipt" aria-hidden="true"></i> <strong>Relatório</strong>: consultar vendas e exportar dados.</div>
+                        <div class="quick-step"><i class="bi bi-cash-coin" aria-hidden="true"></i> <strong>Recebimentos</strong>: controlar pendências de fiado.</div>
+                    </div>
+                    <div id="contextoAtualGestao" class="context-chip">Você está em: <strong>Estoque</strong></div>
+                </div>
+
                 <div class="tabs">
                     <button class="tab-btn ativo" onclick="trocarAbaGestao('visao')">Estoque</button>
                     <button class="tab-btn" onclick="trocarAbaGestao('relatorio')">Relatório de Vendas</button>
@@ -1360,16 +1480,18 @@
 
                 <!-- Aba de Estoque -->
                 <div id="visao" class="tab-content ativo">
-                    <button class="btn btn-primary" onclick="abrirModalProduto()" style="margin-bottom: 12px;"><i class="bi bi-plus-circle" aria-hidden="true"></i> Adicionar Produto</button>
-                    <div class="form-group" style="margin-bottom: 10px;">
-                        <input type="text" id="filtroEstoqueGestao" class="form-control" placeholder="Pesquisar no estoque por nome ou código de barras" oninput="filtrarEstoqueGestao()">
+                    <div class="sticky-actions">
+                        <button class="btn btn-primary" onclick="abrirModalProduto()" style="margin-bottom: 12px;"><i class="bi bi-plus-circle" aria-hidden="true"></i> Adicionar Produto</button>
+                        <div class="form-group" style="margin-bottom: 10px;">
+                            <input type="text" id="filtroEstoqueGestao" class="form-control" placeholder="Pesquisar no estoque por nome ou código de barras" oninput="filtrarEstoqueGestao()">
+                        </div>
                     </div>
                     <div id="estoqueGestao"></div>
                 </div>
 
                 <!-- Aba de Relatório -->
                 <div id="relatorio" class="tab-content">
-                    <div class="form-group" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;">
+                    <div class="form-group sticky-actions" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;">
                         <div style="flex:2;min-width:220px;">
                             <label for="filtroRelatorioNome">Associado/Cliente</label>
                             <input type="text" id="filtroRelatorioNome" class="form-control" placeholder="Pesquisar por nome" oninput="atualizarRelatorio()">
@@ -1553,6 +1675,11 @@
 
     <div class="page-footer">© 2026 Quantum and time - Todos os direitos reservados.</div>
 
+    <script src="app-session.js"></script>
+    <script src="app-state-sync.js"></script>
+    <script src="app-auth-state.js"></script>
+    <script src="app-page-bootstrap.js"></script>
+    <script src="app-backup-server.js"></script>
     <script>
         // Dados
         let produtos = JSON.parse(localStorage.getItem('produtos')) || [];
@@ -1679,9 +1806,10 @@
         let falhaTemporariaSessao = false;
         let redirecionandoParaLogin = false;
         let sincronizacaoServidorAtiva = false;
-        let salvarServidorTimeout = null;
         let ultimoEstadoServidorSerializado = '';
         let intervaloSalvarServidor = null;
+        let csrfToken = '';
+        let falhaSegurancaNotificada = false;
         let leituraCodigoBarrasTimeout = null;
         const categoriasProdutoPermitidas = [
             'Bebidas Alcoolicas',
@@ -1694,6 +1822,15 @@
         function limparCodigoBarras(codigo) {
             return String(codigo || '').replace(/\D/g, '');
         }
+
+        function definirCsrfToken(token) {
+            csrfToken = String(token || '').trim();
+        }
+
+        function montarUrlComCsrf(url) {
+            return window.TocaSession.montarUrlComCsrf(url, csrfToken);
+        }
+        window.TocaSession.installCsrfFetch(() => csrfToken);
 
         function normalizarIdProduto(id) {
             return String(id ?? '').trim();
@@ -1929,15 +2066,17 @@
         }
 
         function respostaIndicaSessaoExpirada(resposta, contentType = '') {
-            if (!resposta) return false;
-            if (resposta.status === 401) return true;
+            return window.TocaSession.respostaIndicaSessaoExpirada(resposta, contentType);
+        }
 
-            const urlFinal = String(resposta.url || '').toLowerCase();
-            const foiParaLogin = urlFinal.includes('/login.html');
-            if (resposta.redirected && foiParaLogin) return true;
-            if (resposta.status === 200 && !String(contentType).includes('application/json') && foiParaLogin) return true;
+        function respostaIndicaFalhaCsrf(resposta) {
+            return window.TocaSession.respostaIndicaFalhaCsrf(resposta);
+        }
 
-            return false;
+        function notificarFalhaSeguranca() {
+            if (falhaSegurancaNotificada) return;
+            falhaSegurancaNotificada = true;
+            mostrarAlerta('Sua sessão de segurança ficou desatualizada. Recarregue a página antes de continuar.', 'erro');
         }
 
         function redirecionarParaLogin(atrasoMs = 0) {
@@ -1983,156 +2122,76 @@
             };
         }
 
+        const sincronizadorEstadoServidor = window.TocaStateSync.create({
+            isEnabled: () => sincronizacaoServidorAtiva,
+            getState: () => obterEstadoAtualSistema(),
+            getLastSerialized: () => ultimoEstadoServidorSerializado,
+            setLastSerialized: (value) => { ultimoEstadoServidorSerializado = value; },
+            isSessionExpiredResponse: (resposta, contentType) => respostaIndicaSessaoExpirada(resposta, contentType),
+            isCsrfFailureResponse: (resposta) => respostaIndicaFalhaCsrf(resposta),
+            onAuthExpired: () => redirecionarParaLogin(300),
+            onCsrfFailure: () => notificarFalhaSeguranca(),
+            onSaveSuccess: () => { falhaSegurancaNotificada = false; },
+            getFlushUrl: () => montarUrlComCsrf('/api/state/flush'),
+        });
+
         function agendarSalvarServidor() {
-            if (!sincronizacaoServidorAtiva) return;
-            if (salvarServidorTimeout) clearTimeout(salvarServidorTimeout);
-            salvarServidorTimeout = setTimeout(() => {
-                salvarEstadoServidor();
-            }, 350);
+            sincronizadorEstadoServidor.schedule();
         }
 
         async function salvarEstadoServidor(opcoes = {}) {
-            if (!sincronizacaoServidorAtiva) return;
-
-            const { forcar = false, usarKeepAlive = false } = opcoes;
-
-            const estado = obterEstadoAtualSistema();
-            const serializado = JSON.stringify(estado);
-            if (!forcar && serializado === ultimoEstadoServidorSerializado) return;
-
-            try {
-                const resposta = await fetch('/api/state', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                    body: serializado,
-                    keepalive: usarKeepAlive,
-                });
-                if (!resposta.ok) {
-                    console.error('[Toca] Falha ao salvar no servidor:', resposta.status);
-                    return;
-                }
-                ultimoEstadoServidorSerializado = serializado;
-            } catch (erro) {
-                // Falha de rede: mantém dados locais e tenta novamente no próximo ciclo.
-                console.error('[Toca] Erro de rede ao salvar:', erro.message);
-            }
-        }
-
-        function flushEstadoComBeacon(serializado) {
-            if (!navigator.sendBeacon) return false;
-            try {
-                const payload = new Blob([serializado], { type: 'application/json' });
-                return navigator.sendBeacon('/api/state/flush', payload);
-            } catch (erro) {
-                return false;
+            const salvo = await sincronizadorEstadoServidor.save(opcoes);
+            if (!salvo && sincronizacaoServidorAtiva) {
+                console.error('[Toca] Falha ao salvar no servidor');
             }
         }
 
         function salvarEstadoServidorNoEncerramento() {
-            if (!sincronizacaoServidorAtiva) return;
-
-            if (salvarServidorTimeout) {
-                clearTimeout(salvarServidorTimeout);
-                salvarServidorTimeout = null;
-            }
-
-            const serializado = JSON.stringify(obterEstadoAtualSistema());
-            if (serializado === ultimoEstadoServidorSerializado) return;
-
-            const enviado = flushEstadoComBeacon(serializado);
-            if (enviado) {
-                ultimoEstadoServidorSerializado = serializado;
-                return;
-            }
-
-            salvarEstadoServidor({ forcar: true, usarKeepAlive: true });
+            sincronizadorEstadoServidor.flushOnExit();
         }
 
         async function carregarEstadoServidor() {
-            try {
-                const resposta = await fetch('/api/state', { headers: { 'Accept': 'application/json' } });
-                if (!resposta.ok) return false;
+            const resultado = await window.TocaAuthState.carregarEstado({
+                vendasLocal: JSON.parse(localStorage.getItem('vendas') || '[]'),
+            });
+            if (!resultado.ok) return false;
 
-                const dados = await resposta.json();
-                if (!dados || !Array.isArray(dados.produtos) || !Array.isArray(dados.vendas) || !Array.isArray(dados.associados)) {
-                    return false;
-                }
+            const estado = resultado.estado;
+            produtos = estado.produtos;
+            vendas = estado.vendas;
+            associados = estado.associados;
+            vendaCounter = estado.vendaCounter;
 
-                // Mesclar vendas locais que ainda não chegaram ao servidor
-                const vendasLocal = JSON.parse(localStorage.getItem('vendas') || '[]');
-                const idsServidor = new Set(dados.vendas.map(v => v.id));
-                const vendasExtras = vendasLocal.filter(v => !idsServidor.has(v.id));
-                const vendasMescladas = vendasExtras.length > 0
-                    ? [...vendasExtras, ...dados.vendas].sort((a, b) => b.id - a.id)
-                    : dados.vendas;
+            localStorage.setItem('produtos', JSON.stringify(produtos));
+            localStorage.setItem('vendas', JSON.stringify(vendas));
+            localStorage.setItem('associados', JSON.stringify(associados));
+            localStorage.setItem('vendaCounter', String(vendaCounter));
 
-                produtos = dados.produtos;
-                vendas = vendasMescladas;
-                associados = dados.associados;
-                vendaCounter = parseInt(dados.vendaCounter) || 1;
-
-                // Se havia vendas locais não salvas, elevar o contador
-                if (vendasMescladas.length > 0) {
-                    const maxId = vendasMescladas.reduce((m, v) => v.id > m ? v.id : m, 0);
-                    if (maxId >= vendaCounter) vendaCounter = maxId + 1;
-                }
-
-                localStorage.setItem('produtos', JSON.stringify(produtos));
-                localStorage.setItem('vendas', JSON.stringify(vendas));
-                localStorage.setItem('associados', JSON.stringify(associados));
-                localStorage.setItem('vendaCounter', String(vendaCounter));
-
-                if (dados.lastSaleId !== null && dados.lastSaleId !== undefined && String(dados.lastSaleId) !== '') {
-                    localStorage.setItem('lastSaleId', String(dados.lastSaleId));
-                } else {
-                    localStorage.removeItem('lastSaleId');
-                }
-
-                ultimoEstadoServidorSerializado = JSON.stringify(obterEstadoAtualSistema());
-
-                // Se havia vendas extras locais, forçar novo envio ao servidor
-                if (vendasExtras.length > 0) {
-                    salvarEstadoServidor({ forcar: true }).catch(() => {});
-                }
-
-                return true;
-            } catch (erro) {
-                return false;
+            if (estado.lastSaleId) {
+                localStorage.setItem('lastSaleId', estado.lastSaleId);
+            } else {
+                localStorage.removeItem('lastSaleId');
             }
+
+            ultimoEstadoServidorSerializado = JSON.stringify(obterEstadoAtualSistema());
+            if (estado.hadLocalExtras) {
+                salvarEstadoServidor({ forcar: true }).catch(() => {});
+            }
+
+            return true;
         }
 
         async function carregarPerfilUsuarioLogado() {
-            try {
-                const resposta = await fetch('/api/me', {
-                    headers: { 'Accept': 'application/json' },
-                    credentials: 'same-origin',
-                    cache: 'no-store'
-                });
-                const contentType = (resposta.headers.get('content-type') || '').toLowerCase();
+            const resultado = await window.TocaAuthState.carregarPerfil({
+                respostaIndicaSessaoExpirada,
+            });
 
-                if (respostaIndicaSessaoExpirada(resposta, contentType)) {
-                    falhaTemporariaSessao = false;
-                    usuarioLogado = null;
-                    perfilLogado = 'operador';
-                    return false;
-                }
-
-                if (!resposta.ok || !contentType.includes('application/json')) {
-                    falhaTemporariaSessao = true;
-                    return null;
-                }
-
-                const dados = await resposta.json();
-                usuarioLogado = dados.user || null;
-                perfilLogado = usuarioLogado && usuarioLogado.perfil ? String(usuarioLogado.perfil).toLowerCase() : 'operador';
-                falhaTemporariaSessao = false;
-                return Boolean(usuarioLogado);
-            } catch (erro) {
-                falhaTemporariaSessao = true;
-                return null;
-            } finally {
-                atualizarIndicadorPerfil();
-            }
+            falhaTemporariaSessao = resultado.status === null;
+            usuarioLogado = resultado.usuario;
+            perfilLogado = resultado.perfil || 'operador';
+            definirCsrfToken(resultado.csrfToken || '');
+            atualizarIndicadorPerfil();
+            return resultado.status;
         }
 
         function aplicarPermissoesInterface() {
@@ -2168,75 +2227,44 @@
 
         // Inicializar
         document.addEventListener('DOMContentLoaded', async () => {
-            window.addEventListener('offline', () => {
-                mostrarAlerta('Conexao instavel. Tentando manter os dados locais sem sair da tela.', 'erro');
+            await window.TocaPageBootstrap.bootAuthenticatedPage({
+                onOffline: () => mostrarAlerta('Conexao instavel. Tentando manter os dados locais sem sair da tela.', 'erro'),
+                onBeforeLeave: () => salvarEstadoServidorNoEncerramento(),
+                loadProfile: () => carregarPerfilUsuarioLogado(),
+                onSessionInvalid: () => redirecionarParaLogin(),
+                loadState: () => carregarEstadoServidor(),
+                onAfterLoadState: () => garantirIdsProdutosValidos(),
+                enableSync: () => { sincronizacaoServidorAtiva = true; },
+                startSyncInterval: () => {
+                    if (!intervaloSalvarServidor) {
+                        intervaloSalvarServidor = setInterval(() => {
+                            salvarEstadoServidor();
+                        }, 5000);
+                    }
+                },
+                onAfterBoot: () => {
+                    vendaCounter = window.TocaPageBootstrap.atualizarContadorComVendas(vendas, vendaCounter);
+                    localStorage.setItem('vendaCounter', String(vendaCounter));
+
+                    if (produtos.length === 0) {
+                        produtos = window.TocaPageBootstrap.createDefaultProducts();
+                        salvarProdutos();
+                    }
+
+                    atualizarListaProdutos();
+                    atualizarEstoqueGestao();
+                    atualizarRelatorio();
+                    atualizarRelatorioDiario();
+                    atualizarListaAssociados();
+                    mostrarVendasParaEdicao();
+                    aplicarPermissoesInterface();
+                    aplicarNavegacaoPrincipalPorQuery();
+                    configurarPainelStickyActions();
+                    agendarSalvarServidor();
+                    window.TocaPageBootstrap.atualizarIndicadorUltimaVenda();
+                    window.TocaPageBootstrap.instalarPreviewImagemProduto(atualizarPreviewImagemProduto);
+                },
             });
-
-            document.addEventListener('visibilitychange', () => {
-                if (document.visibilityState === 'hidden') {
-                    salvarEstadoServidorNoEncerramento();
-                }
-            });
-            window.addEventListener('pagehide', () => {
-                salvarEstadoServidorNoEncerramento();
-            });
-
-            const sessaoValida = await carregarPerfilUsuarioLogado();
-            if (sessaoValida === false) {
-                redirecionarParaLogin();
-                return;
-            }
-
-            await carregarEstadoServidor();
-            garantirIdsProdutosValidos();
-            sincronizacaoServidorAtiva = true;
-            if (!intervaloSalvarServidor) {
-                intervaloSalvarServidor = setInterval(() => {
-                    salvarEstadoServidor();
-                }, 5000);
-            }
-
-            // determine counter from existing vendas if any
-            if(vendas.length>0){
-                const maxId = vendas.reduce((max,v)=> v.id>max? v.id:max,0);
-                vendaCounter = Math.max(vendaCounter, maxId+1);
-                localStorage.setItem('vendaCounter', vendaCounter);
-            }
-
-            if (produtos.length === 0) {
-                produtos = [
-                    { id: 1, nome: 'Leite Integral', preco: 4.50, estoque: 50 },
-                    { id: 2, nome: 'Pão Francês', preco: 0.80, estoque: 100 },
-                    { id: 3, nome: 'Arroz 5kg', preco: 25.00, estoque: 30 },
-                    { id: 4, nome: 'Feijão 1kg', preco: 7.50, estoque: 40 },
-                    { id: 5, nome: 'Açúcar 1kg', preco: 4.00, estoque: 60 },
-                    { id: 6, nome: 'Sal 1kg', preco: 2.00, estoque: 80 }
-                ];
-                salvarProdutos();
-            }
-            atualizarListaProdutos();
-            atualizarEstoqueGestao();
-            atualizarRelatorio();
-            atualizarRelatorioDiario();
-            atualizarListaAssociados();
-            mostrarVendasParaEdicao();
-            aplicarPermissoesInterface();
-            aplicarNavegacaoPrincipalPorQuery();
-            agendarSalvarServidor();
-            // exibir última venda salva
-            const lastId = localStorage.getItem('lastSaleId');
-            if(lastId){
-                const info = document.getElementById('lastSaleInfo');
-                if(info) info.textContent = `Última venda: #${lastId}`;
-            }
-
-            const campoUrlImagemProduto = document.getElementById('produtoImagemUrl');
-            if (campoUrlImagemProduto) {
-                campoUrlImagemProduto.addEventListener('input', () => {
-                    const url = campoUrlImagemProduto.value.trim();
-                    atualizarPreviewImagemProduto(url, url ? 'Imagem definida manualmente' : '');
-                });
-            }
         });
 
 
@@ -2399,6 +2427,88 @@
         }
 
         // Trocar Aba
+        function atualizarContextoAtual(elementId, texto) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            el.innerHTML = `Você está em: <strong>${texto}</strong>`;
+        }
+
+        function inferirTituloStickyActions(bloco) {
+            if (bloco.closest('#estoque')) return 'Busca e leitura de produtos';
+            if (bloco.closest('#categoriaProdutos')) return 'Filtros de categorias e impressao';
+            if (bloco.closest('#editarVenda')) return 'Pesquisa de venda';
+            if (bloco.closest('#visao')) return 'Acoes rapidas de estoque';
+            if (bloco.closest('#relatorio')) return 'Filtros do relatorio';
+            if (bloco.closest('#fiados')) return 'Filtros de recebimentos';
+            return 'Filtros e acoes';
+        }
+
+        function obterChaveStickyActions(bloco, indice) {
+            const secao = bloco.closest('.tab-content')?.id || 'geral';
+            return `tocaSticky:${window.location.pathname}:${secao}:${indice}`;
+        }
+
+        function aplicarEstadoStickyActions(bloco, botao, recolhido) {
+            bloco.classList.toggle('collapsed', recolhido);
+            botao.setAttribute('aria-expanded', recolhido ? 'false' : 'true');
+            botao.innerHTML = recolhido
+                ? '<i class="bi bi-chevron-down" aria-hidden="true"></i> Expandir'
+                : '<i class="bi bi-chevron-up" aria-hidden="true"></i> Recolher';
+        }
+
+        function configurarPainelStickyActions() {
+            const blocos = document.querySelectorAll('.sticky-actions');
+            blocos.forEach((bloco, indice) => {
+                if (bloco.dataset.toggleReady === '1') return;
+
+                const titulo = inferirTituloStickyActions(bloco);
+                const conteudo = document.createElement('div');
+                conteudo.className = 'sticky-actions-content';
+
+                while (bloco.firstChild) {
+                    conteudo.appendChild(bloco.firstChild);
+                }
+
+                const toolbar = document.createElement('div');
+                toolbar.className = 'sticky-actions-toolbar';
+
+                const tituloEl = document.createElement('div');
+                tituloEl.className = 'sticky-actions-title';
+                tituloEl.textContent = titulo;
+
+                const botao = document.createElement('button');
+                botao.type = 'button';
+                botao.className = 'btn btn-secondary sticky-toggle-btn';
+                botao.setAttribute('aria-expanded', 'true');
+                botao.innerHTML = '<i class="bi bi-chevron-up" aria-hidden="true"></i> Recolher';
+
+                const storageKey = obterChaveStickyActions(bloco, indice);
+                let estadoSalvo = null;
+                try {
+                    estadoSalvo = localStorage.getItem(storageKey);
+                } catch (_) {
+                    estadoSalvo = null;
+                }
+                aplicarEstadoStickyActions(bloco, botao, estadoSalvo === 'collapsed');
+
+                botao.addEventListener('click', () => {
+                    const recolhido = !bloco.classList.contains('collapsed');
+                    aplicarEstadoStickyActions(bloco, botao, recolhido);
+                    try {
+                        localStorage.setItem(storageKey, recolhido ? 'collapsed' : 'expanded');
+                    } catch (_) {
+                        // Sem persistencia local disponivel, apenas mantem em memoria da pagina.
+                    }
+                });
+
+                toolbar.appendChild(tituloEl);
+                toolbar.appendChild(botao);
+                bloco.appendChild(toolbar);
+                bloco.appendChild(conteudo);
+                bloco.dataset.toggleReady = '1';
+            });
+        }
+
         function trocarAba(aba, btnEl) {
             if (aba === 'carrinho') aba = 'estoque';
             document.querySelectorAll('#estoque, #carrinho, #categoriaProdutos, #editarVenda, #relatorioDiario').forEach(el => el.classList.remove('ativo'));
@@ -2426,6 +2536,14 @@
             if (aba === 'categoriaProdutos') {
                 atualizarCategoriaProdutos();
             }
+
+            const nomesAbas = {
+                estoque: 'Produtos + Carrinho',
+                categoriaProdutos: 'Categoria dos Produtos',
+                editarVenda: 'Editar Venda',
+                relatorioDiario: 'Relatório Diário'
+            };
+            atualizarContextoAtual('contextoAtualVendas', nomesAbas[aba] || 'Produtos + Carrinho');
         }
 
         function abrirAtalhoVendas(aba) {
@@ -2488,6 +2606,15 @@
             if (aba === 'fiados') atualizarClientesFiados();
             if (aba === 'associado') atualizarListaAssociados();
             if (aba === 'entrada') atualizarEntradaDinheiro();
+
+            const nomesAbas = {
+                visao: 'Estoque',
+                relatorio: 'Relatório de Vendas',
+                fiados: 'Recebimentos',
+                associado: 'Associado',
+                entrada: 'Entrada de Dinheiro'
+            };
+            atualizarContextoAtual('contextoAtualGestao', nomesAbas[aba] || 'Estoque');
         }
 
         // Filtrar Produtos
@@ -3935,88 +4062,27 @@
         }
 
         async function criarBackupServidor() {
-            if(!usuarioEhAdmin()) return bloquearAcaoAdmin();
-            try {
-                const resposta = await fetch('/api/backups', { method: 'POST' });
-                const dados = await resposta.json().catch(() => ({}));
-                if (!resposta.ok) {
-                    throw new Error(dados.error || 'Falha ao criar backup no servidor');
-                }
-                mostrarAlerta(`Backup criado no servidor: ${dados.fileName || 'ok'}`, 'sucesso');
-            } catch (error) {
-                mostrarAlerta(error.message || 'Erro ao criar backup no servidor', 'erro');
-            }
+            return window.TocaBackupServer.criarBackupServidor({
+                isAdmin: () => usuarioEhAdmin(),
+                blockAdmin: () => bloquearAcaoAdmin(),
+                alert: (mensagem, tipo) => mostrarAlerta(mensagem, tipo),
+            });
         }
 
         async function baixarUltimoBackupServidor() {
-            if(!usuarioEhAdmin()) return bloquearAcaoAdmin();
-            try {
-                const resposta = await fetch('/api/backups/latest/download');
-                if (!resposta.ok) {
-                    const dadosErro = await resposta.json().catch(() => ({}));
-                    throw new Error(dadosErro.error || 'Falha ao baixar ultimo backup');
-                }
-                const blob = await resposta.blob();
-                const url = window.URL.createObjectURL(blob);
-                const cd = resposta.headers.get('content-disposition') || '';
-                const match = cd.match(/filename="?([^";]+)"?/i);
-                const nomeArquivo = match ? match[1] : `backup_servidor_${new Date().toISOString().slice(0, 10)}.json`;
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = nomeArquivo;
-                a.click();
-                window.URL.revokeObjectURL(url);
-                mostrarAlerta('Backup mais recente baixado com sucesso', 'sucesso');
-            } catch (error) {
-                mostrarAlerta(error.message || 'Erro ao baixar backup do servidor', 'erro');
-            }
+            return window.TocaBackupServer.baixarUltimoBackupServidor({
+                isAdmin: () => usuarioEhAdmin(),
+                blockAdmin: () => bloquearAcaoAdmin(),
+                alert: (mensagem, tipo) => mostrarAlerta(mensagem, tipo),
+            });
         }
 
         async function baixarBackupServidorEspecifico() {
-            if(!usuarioEhAdmin()) return bloquearAcaoAdmin();
-            try {
-                const resposta = await fetch('/api/backups');
-                const dados = await resposta.json().catch(() => ({}));
-                if (!resposta.ok) {
-                    throw new Error(dados.error || 'Falha ao listar backups do servidor');
-                }
-
-                const backups = Array.isArray(dados.backups) ? dados.backups : [];
-                if (!backups.length) {
-                    mostrarAlerta('Nenhum backup encontrado no servidor', 'erro');
-                    return;
-                }
-
-                const opcoes = backups
-                    .map((b, i) => `${i + 1}. ${b.name}`)
-                    .join('\n');
-                const escolha = window.prompt(`Escolha o numero do backup para baixar:\n\n${opcoes}`);
-                if (escolha === null) return;
-
-                const indice = Number(escolha) - 1;
-                const selecionado = backups[indice];
-                if (!selecionado) {
-                    mostrarAlerta('Opcao de backup invalida', 'erro');
-                    return;
-                }
-
-                const download = await fetch(`/api/backups/${encodeURIComponent(selecionado.name)}/download`);
-                if (!download.ok) {
-                    const dadosErro = await download.json().catch(() => ({}));
-                    throw new Error(dadosErro.error || 'Falha ao baixar backup selecionado');
-                }
-
-                const blob = await download.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = selecionado.name;
-                a.click();
-                window.URL.revokeObjectURL(url);
-                mostrarAlerta(`Backup ${selecionado.name} baixado com sucesso`, 'sucesso');
-            } catch (error) {
-                mostrarAlerta(error.message || 'Erro ao baixar backup do servidor', 'erro');
-            }
+            return window.TocaBackupServer.baixarBackupServidorEspecifico({
+                isAdmin: () => usuarioEhAdmin(),
+                blockAdmin: () => bloquearAcaoAdmin(),
+                alert: (mensagem, tipo) => mostrarAlerta(mensagem, tipo),
+            });
         }
 
         function importarBackupCompleto() {
@@ -4093,10 +4159,17 @@
             if (confirm('ATENÇÃO! Isso vai DELETAR TODOS os dados de vendas e fiados.\n\nDeseja continuar?')) {
                 if (confirm('Tem certeza? Esta ação NÃO pode ser desfeita!')) {
                     vendas = [];
-                    localStorage.removeItem('vendas');
+                    editingSaleId = null;
+                    vendaCounter = 1;
+                    localStorage.removeItem('lastSaleId');
+                    localStorage.setItem('vendaCounter', '1');
+                    salvarVendas();
                     atualizarRelatorio();
                     atualizarRelatorioDiario();
                     atualizarClientesFiados();
+                    mostrarVendasParaEdicao();
+                    const info = document.getElementById('lastSaleInfo');
+                    if (info) info.textContent = '';
                     mostrarAlerta('Todo histórico foi limpo com sucesso', 'sucesso');
                 }
             }
@@ -4117,13 +4190,11 @@
         function salvarProdutos() {
             localStorage.setItem('produtos', JSON.stringify(produtos));
             agendarSalvarServidor();
-            salvarEstadoServidor({ forcar: true }).catch(() => {});
         }
 
         function salvarVendas() {
             localStorage.setItem('vendas', JSON.stringify(vendas));
             agendarSalvarServidor();
-            salvarEstadoServidor({ forcar: true }).catch(() => {});
         }
 
         // Fechar modais ao clicar fora

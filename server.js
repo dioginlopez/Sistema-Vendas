@@ -1,10 +1,12 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const session = require('express-session');
-const { nanoid } = require('nanoid');
+const crypto = require('crypto');
 const { Low } = require('lowdb');
 const { JSONFile } = require('lowdb/node');
 const { Pool } = require('pg');
+const bcrypt = require('bcryptjs');
+const net = require('net');
 const path = require('path');
 const fs = require('fs');
 
@@ -19,6 +21,8 @@ const APP_BOOT_TIME = new Date().toISOString();
 const AUTO_BACKUP_INTERVAL_MINUTES = Math.max(0, Number(process.env.AUTO_BACKUP_INTERVAL_MINUTES || 1440));
 const AUTO_BACKUP_RETENTION = Math.max(1, Number(process.env.AUTO_BACKUP_RETENTION || 30));
 const AUTO_BACKUP_ON_START = String(process.env.AUTO_BACKUP_ON_START || 'true').toLowerCase() !== 'false';
+const STATE_PAYLOAD_LIMIT = String(process.env.STATE_PAYLOAD_LIMIT || '10mb').trim() || '10mb';
+const PASSWORD_HASH_ROUNDS = Math.max(8, Number(process.env.PASSWORD_HASH_ROUNDS || 10));
 const BOOTSTRAP_ADMIN_CPF = normalizeCpf(process.env.BOOTSTRAP_ADMIN_CPF || '');
 const BOOTSTRAP_ADMIN_SENHA = String(process.env.BOOTSTRAP_ADMIN_SENHA || '');
 const BOOTSTRAP_ADMIN_NOME = String(process.env.BOOTSTRAP_ADMIN_NOME || 'ADMIN').trim() || 'ADMIN';
@@ -64,6 +68,289 @@ function findProductByAnyCode(codigoInformado) {
 
 function isAdminUser(user) {
   return user && (user.perfil || 'operador') === 'admin' && user.ativo !== false;
+}
+
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function hasActiveAdminUser(users) {
+  return Array.isArray(users) && users.some((user) => isAdminUser(user));
+}
+
+function normalizePositiveNumber(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return null;
+  }
+  return parsed;
+}
+
+function normalizeNonNegativeInteger(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return null;
+  }
+  return Math.trunc(parsed);
+}
+
+function normalizeOptionalText(value) {
+  const normalized = String(value || '').trim();
+  return normalized || undefined;
+}
+
+function isPasswordHash(value) {
+  return /^\$2[aby]\$\d{2}\$/.test(String(value || ''));
+}
+
+async function hashPassword(password) {
+  return bcrypt.hash(String(password || ''), PASSWORD_HASH_ROUNDS);
+}
+
+async function verifyUserPassword(user, password) {
+  const senhaArmazenada = String(user && user.senha ? user.senha : '');
+  const senhaInformada = String(password || '');
+  if (!senhaArmazenada || !senhaInformada) {
+    return { match: false, shouldUpgrade: false };
+  }
+
+  if (isPasswordHash(senhaArmazenada)) {
+    return {
+      match: await bcrypt.compare(senhaInformada, senhaArmazenada),
+      shouldUpgrade: false,
+    };
+  }
+
+  return {
+    match: senhaArmazenada === senhaInformada,
+    shouldUpgrade: senhaArmazenada === senhaInformada,
+  };
+}
+
+async function ensureUserPasswordsHashed() {
+  if (!Array.isArray(db.data.users) || db.data.users.length === 0) {
+    return false;
+  }
+
+  let changed = false;
+  for (const user of db.data.users) {
+    if (!user || !user.senha || isPasswordHash(user.senha)) {
+      continue;
+    }
+
+    user.senha = await hashPassword(user.senha);
+    changed = true;
+  }
+
+  return changed;
+}
+
+function ensureSessionCsrfToken(req) {
+  if (!req.session) {
+    return '';
+  }
+
+  if (!req.session.csrfToken) {
+    req.session.csrfToken = crypto.randomBytes(24).toString('hex');
+  }
+
+  return req.session.csrfToken;
+}
+
+function extractRequestCsrfToken(req) {
+  const headerToken = String(req.get('x-csrf-token') || '').trim();
+  if (headerToken) {
+    return headerToken;
+  }
+
+  const queryToken = String(req.query && req.query.csrfToken ? req.query.csrfToken : '').trim();
+  if (queryToken) {
+    return queryToken;
+  }
+
+  if (req.body && typeof req.body === 'object' && !Array.isArray(req.body)) {
+    const bodyToken = String(req.body.csrfToken || '').trim();
+    if (bodyToken) {
+      return bodyToken;
+    }
+  }
+
+  return '';
+}
+
+function csrfTokensMatch(sessionToken, requestToken) {
+  const sessionValue = String(sessionToken || '');
+  const requestValue = String(requestToken || '');
+  if (!sessionValue || !requestValue || sessionValue.length !== requestValue.length) {
+    return false;
+  }
+
+  try {
+    return crypto.timingSafeEqual(Buffer.from(sessionValue), Buffer.from(requestValue));
+  } catch (error) {
+    return false;
+  }
+}
+
+function requireCsrf(req, res, next) {
+  const sessionToken = ensureSessionCsrfToken(req);
+  const requestToken = extractRequestCsrfToken(req);
+  if (csrfTokensMatch(sessionToken, requestToken)) {
+    return next();
+  }
+
+  const payload = { error: 'Falha de validacao da sessao. Atualize a pagina e tente novamente.' };
+  if (req.path.startsWith('/api/') || String(req.get('accept') || '').includes('application/json') || req.get('x-requested-with') === 'fetch') {
+    return res.status(403).json(payload);
+  }
+  return res.status(403).send(payload.error);
+}
+
+function normalizeStoredProduct(product, fallbackId) {
+  if (!isPlainObject(product)) {
+    return null;
+  }
+
+  const nome = String(product.nome ?? product.name ?? '').trim();
+  const preco = normalizePositiveNumber(product.preco ?? product.price);
+  const estoque = normalizeNonNegativeInteger(product.estoque ?? product.stock);
+  if (!nome || preco === null || estoque === null) {
+    return null;
+  }
+
+  const normalized = {
+    id: product.id ?? fallbackId ?? crypto.randomUUID(),
+    nome,
+    preco,
+    estoque,
+  };
+
+  const optionalFields = {
+    codigoBarras: normalizeOptionalText(product.codigoBarras),
+    codigo: normalizeOptionalText(product.codigo),
+    sku: normalizeOptionalText(product.sku),
+    marca: normalizeOptionalText(product.marca),
+    imagemUrl: normalizeOptionalText(product.imagemUrl),
+    categoria: normalizeOptionalText(product.categoria),
+  };
+
+  Object.entries(optionalFields).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalized[key] = value;
+    }
+  });
+
+  const valorCasco = normalizePositiveNumber(product.valorCasco);
+  if (valorCasco !== null) {
+    normalized.valorCasco = valorCasco;
+  }
+
+  return normalized;
+}
+
+function cloneObjectArray(items) {
+  if (!Array.isArray(items)) {
+    return null;
+  }
+
+  const cloned = [];
+  for (const item of items) {
+    if (!isPlainObject(item)) {
+      return null;
+    }
+    cloned.push({ ...item });
+  }
+  return cloned;
+}
+
+function sanitizeIncomingState(payload) {
+  const { produtos, vendas, associados, vendaCounter, lastSaleId } = payload || {};
+  if (!Array.isArray(produtos) || !Array.isArray(vendas) || !Array.isArray(associados)) {
+    return { error: 'Estado inválido: produtos, vendas e associados devem ser listas' };
+  }
+
+  const produtosNormalizados = [];
+  for (let index = 0; index < produtos.length; index += 1) {
+    const produto = normalizeStoredProduct(produtos[index], `produto-${index + 1}`);
+    if (!produto) {
+      return { error: `Estado inválido: produto ${index + 1} está incompleto ou possui valores inválidos` };
+    }
+    produtosNormalizados.push(produto);
+  }
+
+  const vendasNormalizadas = cloneObjectArray(vendas);
+  const associadosNormalizados = cloneObjectArray(associados);
+  if (!vendasNormalizadas || !associadosNormalizados) {
+    return { error: 'Estado inválido: vendas e associados devem conter apenas objetos válidos' };
+  }
+
+  const vendaCounterFinal = Number.isFinite(Number(vendaCounter)) && Number(vendaCounter) > 0
+    ? Math.trunc(Number(vendaCounter))
+    : 1;
+
+  return {
+    state: {
+      products: produtosNormalizados,
+      vendas: vendasNormalizadas,
+      associados: associadosNormalizados,
+      vendaCounter: vendaCounterFinal,
+      lastSaleId: lastSaleId === null || lastSaleId === undefined || String(lastSaleId).trim() === ''
+        ? null
+        : String(lastSaleId),
+    },
+  };
+}
+
+function isBlockedIpAddress(hostname) {
+  const ipVersion = net.isIP(hostname);
+  if (ipVersion === 4) {
+    const [first, second] = hostname.split('.').map((part) => Number(part));
+    return first === 10
+      || first === 127
+      || first === 0
+      || (first === 169 && second === 254)
+      || (first === 172 && second >= 16 && second <= 31)
+      || (first === 192 && second === 168);
+  }
+
+  if (ipVersion === 6) {
+    const normalized = hostname.toLowerCase();
+    return normalized === '::1'
+      || normalized.startsWith('fc')
+      || normalized.startsWith('fd')
+      || normalized.startsWith('fe80');
+  }
+
+  return false;
+}
+
+function validateExternalImageUrl(urlParam) {
+  const rawUrl = String(urlParam || '').trim();
+  if (!rawUrl) {
+    return { error: 'URL da imagem nao informada' };
+  }
+
+  let imageUrl;
+  try {
+    imageUrl = new URL(rawUrl);
+  } catch (error) {
+    return { error: 'URL da imagem invalida' };
+  }
+
+  if (!['http:', 'https:'].includes(imageUrl.protocol)) {
+    return { error: 'Protocolo de URL nao permitido' };
+  }
+
+  const hostname = String(imageUrl.hostname || '').trim().toLowerCase();
+  if (!hostname) {
+    return { error: 'URL da imagem invalida' };
+  }
+
+  if (hostname === 'localhost' || hostname.endsWith('.local') || isBlockedIpAddress(hostname)) {
+    return { error: 'Host de URL nao permitido' };
+  }
+
+  return { imageUrl };
 }
 
 function ensureDbShape() {
@@ -144,7 +431,9 @@ async function saveStateToPg(state) {
   );
 }
 
-async function persistDb() {
+let persistDbChain = Promise.resolve();
+
+async function persistDbNow() {
   ensureDbShape();
   await db.write();
   if (!pgPool) {
@@ -158,8 +447,15 @@ async function persistDb() {
   }
 }
 
-function ensureBootstrapAdmin() {
-  if (!Array.isArray(db.data.users) || db.data.users.length > 0) {
+function persistDb() {
+  persistDbChain = persistDbChain
+    .catch(() => {})
+    .then(() => persistDbNow());
+  return persistDbChain;
+}
+
+async function ensureBootstrapAdmin() {
+  if (!Array.isArray(db.data.users) || hasActiveAdminUser(db.data.users)) {
     return false;
   }
 
@@ -172,17 +468,26 @@ function ensureBootstrapAdmin() {
     return false;
   }
 
-  const novoAdmin = {
-    id: nanoid(),
+  const usuarioExistente = db.data.users.find((user) => normalizeCpf(user.cpf) === BOOTSTRAP_ADMIN_CPF);
+  if (usuarioExistente) {
+    usuarioExistente.nome = BOOTSTRAP_ADMIN_NOME;
+    usuarioExistente.senha = await hashPassword(BOOTSTRAP_ADMIN_SENHA);
+    usuarioExistente.perfil = 'admin';
+    usuarioExistente.ativo = true;
+    console.log(`Admin bootstrap reativado para o CPF ${BOOTSTRAP_ADMIN_CPF}.`);
+    return true;
+  }
+
+  db.data.users.push({
+    id: crypto.randomUUID(),
     nome: BOOTSTRAP_ADMIN_NOME,
     cpf: BOOTSTRAP_ADMIN_CPF,
-    senha: BOOTSTRAP_ADMIN_SENHA,
+    senha: await hashPassword(BOOTSTRAP_ADMIN_SENHA),
     perfil: 'admin',
     ativo: true,
     criadoEm: new Date().toISOString(),
-  };
+  });
 
-  db.data.users.push(novoAdmin);
   console.log(`Admin bootstrap criado para o CPF ${BOOTSTRAP_ADMIN_CPF}.`);
   return true;
 }
@@ -367,8 +672,8 @@ app.use(session({
   },
 }))
 
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false, limit: STATE_PAYLOAD_LIMIT }));
+app.use(bodyParser.json({ limit: STATE_PAYLOAD_LIMIT }));
 
 app.use((req, res, next) => {
   if (req.path.endsWith('.html') || req.path === '/') {
@@ -422,15 +727,6 @@ async function requireLogin(req, res, next) {
       }
     }
 
-    // Modo recuperação: se não houver admin ativo no banco, libera esta sessão como admin.
-    const existeAdminAtivo = db.data.users.some((u) => isAdminUser(u));
-    if (!existeAdminAtivo) {
-      req.session.user = {
-        ...(req.session.user || {}),
-        perfil: 'admin',
-      };
-    }
-
     return next();
   } catch (error) {
     console.error('Erro no middleware requireLogin:', error.message);
@@ -446,11 +742,8 @@ async function requireAdmin(req, res, next) {
     await ensureDbLoaded();
 
     const perfil = req.session && req.session.user ? req.session.user.perfil : null;
-    const existeAdminAtivo = db.data.users.some((u) => isAdminUser(u));
-
-    // Modo recuperação: sem admin ativo, permitir gestão de usuários para recriar acesso.
-    if (!existeAdminAtivo) {
-      return next();
+    if (!hasActiveAdminUser(db.data.users)) {
+      return res.status(503).json({ error: 'Nenhum administrador ativo. Configure BOOTSTRAP_ADMIN_* para recuperar o acesso.' });
     }
 
     if (perfil === 'admin') {
@@ -489,8 +782,9 @@ async function ensureDbLoaded() {
 
   const before = JSON.stringify(db.data || {});
   ensureDbShape();
-  const bootstrapCriado = ensureBootstrapAdmin();
-  if (bootstrapCriado || before !== JSON.stringify(db.data || {}) || shouldPersist) {
+  const bootstrapCriado = await ensureBootstrapAdmin();
+  const senhasMigradas = await ensureUserPasswordsHashed();
+  if (bootstrapCriado || senhasMigradas || before !== JSON.stringify(db.data || {}) || shouldPersist) {
     await persistDb();
   }
 }
@@ -516,13 +810,13 @@ app.post('/login', async (req, res) => {
         user.nome = BOOTSTRAP_ADMIN_NOME;
         user.perfil = 'admin';
         user.ativo = true;
-        user.senha = BOOTSTRAP_ADMIN_SENHA;
+        user.senha = await hashPassword(BOOTSTRAP_ADMIN_SENHA);
       } else {
         user = {
-          id: nanoid(),
+          id: crypto.randomUUID(),
           nome: BOOTSTRAP_ADMIN_NOME,
           cpf: BOOTSTRAP_ADMIN_CPF,
-          senha: BOOTSTRAP_ADMIN_SENHA,
+          senha: await hashPassword(BOOTSTRAP_ADMIN_SENHA),
           perfil: 'admin',
           ativo: true,
           criadoEm: new Date().toISOString(),
@@ -532,8 +826,16 @@ app.post('/login', async (req, res) => {
       await persistDb();
     }
 
-    if (user && user.senha === senha && user.ativo !== false) {
+    const passwordCheck = user ? await verifyUserPassword(user, senha) : { match: false, shouldUpgrade: false };
+
+    if (user && passwordCheck.match && user.ativo !== false) {
+      if (passwordCheck.shouldUpgrade) {
+        user.senha = await hashPassword(senha);
+        await persistDb();
+      }
+
       req.session.loggedIn = true;
+      ensureSessionCsrfToken(req);
       req.session.user = {
         id: user.id,
         nome: user.nome,
@@ -559,20 +861,20 @@ app.post('/login', async (req, res) => {
   }
 });
 
-app.post('/logout', (req, res) => {
+app.post('/logout', requireLogin, requireCsrf, (req, res) => {
   req.session.destroy(() => {
     res.redirect('/login.html');
   });
 });
 
-app.post('/logout-beacon', (req, res) => {
+app.post('/logout-beacon', requireLogin, requireCsrf, (req, res) => {
   req.session.destroy(() => {
     res.status(204).end();
   });
 });
 
 app.get('/api/me', requireLogin, (req, res) => {
-  res.json({ user: req.session.user || null });
+  res.json({ user: req.session.user || null, csrfToken: ensureSessionCsrfToken(req) });
 });
 
 app.get('/api/users', requireLogin, requireAdmin, async (req, res) => {
@@ -592,36 +894,25 @@ app.get('/api/state', requireLogin, async (req, res) => {
   });
 });
 
-app.put('/api/state', requireLogin, async (req, res) => {
+app.put('/api/state', requireLogin, requireCsrf, async (req, res) => {
   await ensureDbLoaded();
 
-  const {
-    produtos,
-    vendas,
-    associados,
-    vendaCounter,
-    lastSaleId,
-  } = req.body || {};
-
-  if (!Array.isArray(produtos) || !Array.isArray(vendas) || !Array.isArray(associados)) {
-    return res.status(400).json({ error: 'Estado inválido: produtos, vendas e associados devem ser listas' });
+  const sanitized = sanitizeIncomingState(req.body || {});
+  if (sanitized.error) {
+    return res.status(400).json({ error: sanitized.error });
   }
 
-  const vendaCounterFinal = Number.isFinite(Number(vendaCounter)) && Number(vendaCounter) > 0
-    ? Number(vendaCounter)
-    : 1;
-
-  db.data.products = produtos;
-  db.data.vendas = vendas;
-  db.data.associados = associados;
-  db.data.vendaCounter = vendaCounterFinal;
-  db.data.lastSaleId = lastSaleId ?? null;
+  db.data.products = sanitized.state.products;
+  db.data.vendas = sanitized.state.vendas;
+  db.data.associados = sanitized.state.associados;
+  db.data.vendaCounter = sanitized.state.vendaCounter;
+  db.data.lastSaleId = sanitized.state.lastSaleId;
 
   await persistDb();
   return res.json({ ok: true });
 });
 
-app.post('/api/state/flush', requireLogin, bodyParser.text({ type: '*/*', limit: '2mb' }), async (req, res) => {
+app.post('/api/state/flush', requireLogin, requireCsrf, bodyParser.text({ type: '*/*', limit: STATE_PAYLOAD_LIMIT }), async (req, res) => {
   await ensureDbLoaded();
 
   let payload = req.body;
@@ -637,27 +928,16 @@ app.post('/api/state/flush', requireLogin, bodyParser.text({ type: '*/*', limit:
     }
   }
 
-  const {
-    produtos,
-    vendas,
-    associados,
-    vendaCounter,
-    lastSaleId,
-  } = payload || {};
-
-  if (!Array.isArray(produtos) || !Array.isArray(vendas) || !Array.isArray(associados)) {
-    return res.status(400).json({ error: 'Estado inválido: produtos, vendas e associados devem ser listas' });
+  const sanitized = sanitizeIncomingState(payload || {});
+  if (sanitized.error) {
+    return res.status(400).json({ error: sanitized.error });
   }
 
-  const vendaCounterFinal = Number.isFinite(Number(vendaCounter)) && Number(vendaCounter) > 0
-    ? Number(vendaCounter)
-    : 1;
-
-  db.data.products = produtos;
-  db.data.vendas = vendas;
-  db.data.associados = associados;
-  db.data.vendaCounter = vendaCounterFinal;
-  db.data.lastSaleId = lastSaleId ?? null;
+  db.data.products = sanitized.state.products;
+  db.data.vendas = sanitized.state.vendas;
+  db.data.associados = sanitized.state.associados;
+  db.data.vendaCounter = sanitized.state.vendaCounter;
+  db.data.lastSaleId = sanitized.state.lastSaleId;
 
   await persistDb();
   return res.json({ ok: true });
@@ -678,7 +958,7 @@ app.get('/api/backups', requireLogin, requireAdmin, async (req, res) => {
   }
 });
 
-app.post('/api/backups', requireLogin, requireAdmin, async (req, res) => {
+app.post('/api/backups', requireLogin, requireAdmin, requireCsrf, async (req, res) => {
   try {
     const backup = await createBackup('manual');
     return res.status(201).json({
@@ -728,7 +1008,7 @@ app.get('/api/backups/:name/download', requireLogin, requireAdmin, async (req, r
   }
 });
 
-app.post('/api/users', requireLogin, requireAdmin, async (req, res) => {
+app.post('/api/users', requireLogin, requireAdmin, requireCsrf, async (req, res) => {
   await ensureDbLoaded();
   const { nome, cpf, senha, perfil, ativo } = req.body;
 
@@ -752,10 +1032,10 @@ app.post('/api/users', requireLogin, requireAdmin, async (req, res) => {
   }
 
   const novoUsuario = {
-    id: nanoid(),
+    id: crypto.randomUUID(),
     nome: nomeLimpo,
     cpf: cpfLimpo,
-    senha: senhaLimpa,
+    senha: await hashPassword(senhaLimpa),
     perfil: perfilFinal,
     ativo: ativo !== false,
     criadoEm: new Date().toISOString(),
@@ -768,7 +1048,7 @@ app.post('/api/users', requireLogin, requireAdmin, async (req, res) => {
   return res.status(201).json(safeUser);
 });
 
-app.put('/api/users/:id', requireLogin, requireAdmin, async (req, res) => {
+app.put('/api/users/:id', requireLogin, requireAdmin, requireCsrf, async (req, res) => {
   await ensureDbLoaded();
   const { id } = req.params;
   const user = db.data.users.find((item) => item.id === id);
@@ -809,7 +1089,7 @@ app.put('/api/users/:id', requireLogin, requireAdmin, async (req, res) => {
     if (senha.length < 4) {
       return res.status(400).json({ error: 'Senha deve ter pelo menos 4 caracteres' });
     }
-    user.senha = senha;
+    user.senha = await hashPassword(senha);
   }
 
   await persistDb();
@@ -817,7 +1097,7 @@ app.put('/api/users/:id', requireLogin, requireAdmin, async (req, res) => {
   return res.json(safeUser);
 });
 
-app.delete('/api/users/:id', requireLogin, requireAdmin, async (req, res) => {
+app.delete('/api/users/:id', requireLogin, requireAdmin, requireCsrf, async (req, res) => {
   await ensureDbLoaded();
   const { id } = req.params;
 
@@ -1410,21 +1690,11 @@ app.get('/api/product-image-options', requireLogin, async (req, res) => {
 });
 
 app.get('/api/image-proxy', requireLogin, async (req, res) => {
-  const urlParam = String(req.query.url || '').trim();
-  if (!urlParam) {
-    return res.status(400).json({ error: 'URL da imagem nao informada' });
+  const validatedUrl = validateExternalImageUrl(req.query.url);
+  if (validatedUrl.error) {
+    return res.status(400).json({ error: validatedUrl.error });
   }
-
-  let imageUrl;
-  try {
-    imageUrl = new URL(urlParam);
-  } catch (error) {
-    return res.status(400).json({ error: 'URL da imagem invalida' });
-  }
-
-  if (!['http:', 'https:'].includes(imageUrl.protocol)) {
-    return res.status(400).json({ error: 'Protocolo de URL nao permitido' });
-  }
+  const { imageUrl } = validatedUrl;
 
   try {
     const resposta = await fetch(imageUrl.toString(), {
@@ -1469,15 +1739,11 @@ app.get('/api/download-image', requireLogin, async (req, res) => {
   }
 
   let imageUrl;
-  try {
-    imageUrl = new URL(finalUrl);
-  } catch (error) {
-    return res.status(400).json({ error: 'URL da imagem invalida' });
+  const validatedUrl = validateExternalImageUrl(finalUrl);
+  if (validatedUrl.error) {
+    return res.status(400).json({ error: validatedUrl.error });
   }
-
-  if (!['http:', 'https:'].includes(imageUrl.protocol)) {
-    return res.status(400).json({ error: 'Protocolo de URL nao permitido' });
-  }
+  imageUrl = validatedUrl.imageUrl;
 
   try {
     const resposta = await fetch(imageUrl.toString(), {
