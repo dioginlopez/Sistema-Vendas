@@ -1,0 +1,122 @@
+{
+  "createdAt": "2026-03-13T18:02:55.200Z",
+  "reason": "auto",
+  "source": "server-auto-backup",
+  "state": {
+    "products": [
+      {
+        "id": 1772921710278,
+        "nome": "Del Valle Pêssego 200Ml",
+        "preco": 4,
+        "estoque": 18,
+        "codigoBarras": "7894900660425",
+        "categoria": "Bebida"
+      },
+      {
+        "id": 1772928419652,
+        "nome": "Kró Presunto",
+        "preco": 4.5,
+        "estoque": 11,
+        "codigoBarras": "7896221400483",
+        "categoria": "Variados"
+      }
+    ],
+    "users": [
+      {
+        "id": "aZAOpCDvJm-qXdLFpCMGh",
+        "nome": "Diogo",
+        "cpf": "097.186.911-11",
+        "senha": "131028",
+        "perfil": "admin",
+        "ativo": true,
+        "criadoEm": "2026-03-07T17:04:27.347Z"
+      },
+      {
+        "id": "1PbVZH9v3PBO8PdAMGWCa",
+        "nome": "Avelino",
+        "cpf": "109.850.701-02",
+        "senha": "1234",
+        "perfil": "operador",
+        "ativo": true,
+        "criadoEm": "2026-03-08T00:31:53.458Z"
+      },
+      {
+        "id": "Dq4RJbYBQ061iFAudhcf8",
+        "nome": "ADMIN",
+        "cpf": "12345678901",
+        "senha": "1234",
+        "perfil": "admin",
+        "ativo": true,
+        "criadoEm": "2026-03-10T01:09:12.419Z"
+      }
+    ],
+    "vendas": [
+      {
+        "id": 3,
+        "data": "08/03/2026, 22:38:20",
+        "vendedor": "Diogo",
+        "cliente": "DIOGO LOURENÇO LOPEZ ROSSO",
+        "fiado": true,
+        "metodoPagamento": "Fiado",
+        "itens": [
+          {
+            "nome": "Del Valle Pêssego 200Ml",
+            "quantidade": 1,
+            "preco": 4
+          }
+        ],
+        "subtotal": 4,
+        "desconto": 0,
+        "valorDesconto": 0,
+        "total": 4
+      },
+      {
+        "id": 2,
+        "data": "08/03/2026, 22:18:35",
+        "vendedor": "Diogo",
+        "cliente": "DIOGO LOURENÇO LOPEZ ROSSO",
+        "fiado": true,
+        "metodoPagamento": "Fiado",
+        "itens": [
+          {
+            "nome": "Kró Presunto",
+            "quantidade": 1,
+            "preco": 4.5
+          }
+        ],
+        "subtotal": 4.5,
+        "desconto": 0,
+        "valorDesconto": 0,
+        "total": 4.5
+      },
+      {
+        "id": 1,
+        "data": "08/03/2026, 21:45:46",
+        "vendedor": "Diogo",
+        "cliente": "Cliente não informado",
+        "fiado": false,
+        "metodoPagamento": "pix",
+        "itens": [
+          {
+            "nome": "Del Valle Pêssego 200Ml",
+            "quantidade": 1,
+            "preco": 4
+          }
+        ],
+        "subtotal": 4,
+        "desconto": 0,
+        "valorDesconto": 0,
+        "total": 4
+      }
+    ],
+    "associados": [
+      {
+        "nome": "DIOGO LOURENÇO LOPEZ ROSSO",
+        "posto": "SD ROSSO",
+        "senha": "131028"
+      }
+    ],
+    "vendaCounter": 4,
+    "lastSaleId": "3"
+  }
+}

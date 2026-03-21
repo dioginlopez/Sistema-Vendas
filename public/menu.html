@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cardápio de Produtos</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .print-btn { margin-bottom: 20px; }
+        .categoria { margin-top: 30px; }
+        .categoria h2 { border-bottom: 1px solid #ccc; padding-bottom: 5px; }
+        .produtos-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .produto-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            width: 200px;
+            box-shadow: 0 2px 6px #eee;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .produto-card img {
+            max-width: 100%;
+            max-height: 120px;
+            object-fit: contain;
+            margin-bottom: 10px;
+        }
+        .produto-nome { font-weight: bold; margin-bottom: 5px; }
+        .produto-preco { color: #388e3c; font-size: 1.1em; }
+        @media print {
+            .print-btn { display: none; }
+            body { margin: 0; }
+        }
+    </style>
+</head>
+<body>
+    <button class="print-btn" onclick="window.print()">Imprimir Cardápio</button>
+    <div id="menu-container">
+        Carregando cardápio...
+    </div>
+    <script src="app-menu.js"></script>
+</body>
+</html>

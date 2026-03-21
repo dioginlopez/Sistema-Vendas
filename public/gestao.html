@@ -1396,7 +1396,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <img src="https://csspp.quantumandtime.com.br/assets/imgs/11-rc-mec-logo.png" alt="Logo" style="height:80px; display:block; margin:0 auto 15px;">
+            <img src="/logo-csspp.png" alt="Logo" style="height:80px; display:block; margin:0 auto 15px;">
             <h1><i class="bi bi-bag-check-fill" aria-hidden="true"></i> Sistema de controle de vendas</h1>
             <p>Clube dos Subtenentes e Sargentos do 11º RC MEC</p>
             <div id="perfilBadge" class="perfil-badge">OLÁ, CARREGANDO...</div>
@@ -1441,6 +1441,7 @@
                         <button class="principal-card" onclick="abrirAtalhoGestao('fiados')">Gestão: Recebimentos</button>
                         <button class="principal-card" onclick="abrirAtalhoGestao('associado')">Gestão: Associados</button>
                         <button class="principal-card" onclick="abrirAtalhoGestao('entrada')">Gestão: Entrada de Dinheiro</button>
+                        <button class="principal-card" onclick="window.open('menu.html', '_blank')"><i class="bi bi-card-list"></i> Cardápio de Produtos</button>
                     </div>
                 </div>
 
@@ -3359,17 +3360,17 @@
                 </html>
             `;
 
-            const janela = window.open('', '_blank', 'width=900,height=700');
-            if (!janela) {
-                mostrarAlerta('Nao foi possivel abrir a tela de impressao. Verifique o bloqueador de pop-up.', 'erro');
-                return;
-            }
-
-            janela.document.open();
-            janela.document.write(conteudo);
-            janela.document.close();
-            janela.focus();
-            janela.print();
+            const iframe = document.createElement('iframe');
+            iframe.style.cssText = 'position:fixed;width:0;height:0;border:0;display:none;';
+            document.body.appendChild(iframe);
+            iframe.contentDocument.open();
+            iframe.contentDocument.write(conteudo);
+            iframe.contentDocument.close();
+            setTimeout(() => {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
+                setTimeout(() => document.body.removeChild(iframe), 1000);
+            }, 300);
         }
 
         // Adicionar ao Carrinho

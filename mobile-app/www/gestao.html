@@ -815,13 +815,17 @@
             border-color: #f39c12;
         }
 
+        /* na página de gestão, exibe somente o painel de gestão */
         .content {
             grid-template-columns: 1fr;
         }
 
-        /* na página principal, gestão fica em página separada */
-        .gestao-panel {
+        .content > .panel:first-of-type {
             display: none;
+        }
+
+        .gestao-panel {
+            display: block;
         }
 
         /* Relatórios */
@@ -1205,8 +1209,48 @@
             background: #ffffff;
             border: 1px solid #dbe4ef;
             border-radius: 12px;
-            padding: 12px;
+            padding: 12px 74px 12px 12px;
             box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
+            position: relative;
+        }
+
+        .associado-actions {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .associado-edit-btn,
+        .associado-remove-btn {
+            width: 26px !important;
+            height: 26px;
+            min-width: 26px;
+            border-radius: 999px;
+            padding: 0 !important;
+            margin-top: 0 !important;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.78em;
+            line-height: 1;
+        }
+
+        .associado-edit-btn {
+            width: 26px !important;
+            background: #64748b;
+            box-shadow: 0 4px 10px rgba(100, 116, 139, 0.35);
+            color: #fff;
+        }
+
+        .associado-edit-btn:hover {
+            background: #475569;
+        }
+
+        .associado-remove-btn {
+            width: 26px !important;
         }
 
         .associado-item strong {
@@ -1227,6 +1271,34 @@
             text-align: center;
             color: #64748b;
             font-weight: 600;
+        }
+
+        .devedor-item {
+            position: relative;
+            padding: 12px 74px 12px 12px;
+        }
+
+        .devedor-actions {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .devedor-action-btn {
+            width: 26px !important;
+            height: 26px;
+            min-width: 26px;
+            border-radius: 999px;
+            padding: 0 !important;
+            margin-top: 0 !important;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.78em;
+            line-height: 1;
         }
 
         .estoque-item {
@@ -1301,6 +1373,16 @@
         }
 
         @media (max-width: 700px) {
+            .container {
+                max-width: 100%;
+                width: 100%;
+                padding: 0 14px;
+            }
+
+            .content {
+                padding: 22px 0;
+            }
+
             .panel {
                 padding: 20px;
             }
@@ -1318,50 +1400,65 @@
             <h1><i class="bi bi-bag-check-fill" aria-hidden="true"></i> Sistema de controle de vendas</h1>
             <p>Clube dos Subtenentes e Sargentos do 11º RC MEC</p>
             <div id="perfilBadge" class="perfil-badge">OLÁ, CARREGANDO...</div>
+            <button class="btn btn-secondary" onclick="window.location.href='index.html'" style="max-width: 300px; margin: 15px auto 0 auto; display: block;">Voltar para Realizar Venda</button>
             <button class="btn btn-secondary" onclick="sairSistema()" style="max-width: 220px; margin: 10px auto 0 auto; display: block;"><i class="bi bi-box-arrow-right" aria-hidden="true"></i> Sair</button>
         </div>
 
         <div class="content">
             <!-- Painel de Vendas -->
-            <div class="panel">
+            <div class="panel gestao-panel">
                 <h2>Realizar Venda</h2>
                 
                 <div class="alert" id="alert"></div>
                 <div id="lastSaleInfo" style="margin-top:10px; font-weight:bold;"></div>
-                <button class="btn btn-secondary" onclick="window.location.href='principal.html'" style="margin: 10px 0 10px 0; width: 100%;"><i class="bi bi-compass" aria-hidden="true"></i> Ir para Principal</button>
-                <button class="btn btn-secondary" onclick="window.location.href='/app/visao'" style="margin: 10px 0 15px 0; width: 100%;">Ir para Gestão de Estoque</button>
 
                 <div class="quick-guide">
                     <h3><i class="bi bi-signpost-2" aria-hidden="true"></i> Fluxo rápido de venda</h3>
                     <div class="quick-steps">
-                        <div class="quick-step"><i class="bi bi-1-circle" aria-hidden="true"></i> Abra <strong>Produtos</strong> e adicione itens.</div>
-                        <div class="quick-step"><i class="bi bi-2-circle" aria-hidden="true"></i> Revise no carrinho e confirme pagamento.</div>
-                        <div class="quick-step"><i class="bi bi-3-circle" aria-hidden="true"></i> Use <strong>Editar Venda</strong> para corrigir rapidamente.</div>
+                        <div class="quick-step"><i class="bi bi-1-circle" aria-hidden="true"></i> Use <strong>Produtos</strong> para incluir itens.</div>
+                        <div class="quick-step"><i class="bi bi-2-circle" aria-hidden="true"></i> Confira no carrinho e finalize.</div>
+                        <div class="quick-step"><i class="bi bi-3-circle" aria-hidden="true"></i> Ajustes posteriores em <strong>Editar Venda</strong>.</div>
                     </div>
-                    <div id="contextoAtualVendas" class="context-chip">Você está em: <strong>Produtos + Carrinho</strong></div>
+                    <div id="contextoAtualVendas" class="context-chip">Você está em: <strong>Principal</strong></div>
                 </div>
 
                 <div class="tabs">
-                    <button class="tab-btn ativo" data-aba="estoque" onclick="trocarAba('estoque', this)">Produtos</button>
-                    <button class="tab-btn" data-aba="categoriaProdutos" onclick="trocarAba('categoriaProdutos', this)">Categoria dos Produtos</button>
+                    <button class="tab-btn ativo" data-aba="principal" onclick="trocarAba('principal', this)">Principal</button>
+                    <button class="tab-btn" data-aba="estoque" onclick="trocarAba('estoque', this)">Produtos</button>
                     <button class="tab-btn" data-aba="editarVenda" onclick="trocarAba('editarVenda', this)">Editar Venda</button>
-                    <button class="tab-btn" data-aba="relatorioDiario" onclick="trocarAba('relatorioDiario', this)">Relatório Diário</button>
+                </div>
+
+                <!-- Aba Principal -->
+                <div id="principal" class="tab-content ativo">
+                    <h3>Acesso Rápido</h3>
+                    <div class="principal-grid">
+                        <button class="principal-card" onclick="abrirAtalhoVendas('estoque')">Produtos + Carrinho</button>
+                        <button class="principal-card" onclick="abrirAtalhoVendas('estoque')">Venda Rápida</button>
+                        <button class="principal-card" onclick="abrirAtalhoVendas('editarVenda')">Editar Venda</button>
+                        <button class="principal-card" onclick="abrirAtalhoGestao('usuarios')">Usuários</button>
+                        <button class="principal-card" onclick="abrirAtalhoGestao('visao')">Gestão: Estoque</button>
+                        <button class="principal-card" onclick="abrirAtalhoGestao('relatorio')">Gestão: Relatório</button>
+                        <button class="principal-card" onclick="abrirAtalhoGestao('fiados')">Gestão: Recebimentos</button>
+                        <button class="principal-card" onclick="abrirAtalhoGestao('associado')">Gestão: Associados</button>
+                        <button class="principal-card" onclick="abrirAtalhoGestao('entrada')">Gestão: Entrada de Dinheiro</button>
+                    </div>
                 </div>
 
                 <div class="venda-operacao-layout">
                 <!-- Aba de Estoque -->
-                <div id="estoque" class="tab-content ativo">
+                <div id="estoque" class="tab-content">
                     <div class="sticky-actions">
                         <div class="form-group">
-                            <input type="text" id="pesquisaProduto" placeholder="Pesquisar produto por nome ou categoria..." onkeyup="filtrarProdutos()" style="margin-bottom: 10px;">
-                            <input type="text" id="pesquisaCodigoBarras" placeholder="Ou pesquisar somente por código de barras" inputmode="numeric" onkeyup="filtrarProdutos()" style="margin-bottom: 20px;">
+                            <input type="text" id="pesquisaProduto" placeholder="Pesquisar produto por nome..." onkeyup="filtrarProdutos()" style="margin-bottom: 10px;">
+                            <input type="text" id="pesquisaCodigoBarras" placeholder="Ou pesquisar somente por codigo de barras" inputmode="numeric" onkeyup="filtrarProdutos()" style="margin-bottom: 20px;">
                         </div>
                         <div class="form-group" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom: 12px;">
-                            <input type="text" id="codigoBarrasVenda" class="form-control" placeholder="Leitura rápida por código de barras" style="flex:2;min-width:220px;" oninput="tentarAdicionarPorCodigoBarrasAutomatico()" onkeydown="if(event.key==='Enter'){event.preventDefault();adicionarPorCodigoBarras();}">
-                            <button class="btn btn-secondary" style="width:auto;margin-top:0;padding:10px 14px;" onclick="adicionarPorCodigoBarras()"><i class="bi bi-upc-scan" aria-hidden="true"></i> Ler Código</button>
+                            <input type="text" id="codigoBarrasVenda" class="form-control" placeholder="Leitura rapida por codigo de barras" style="flex:2;min-width:220px;" oninput="tentarAdicionarPorCodigoBarrasAutomatico()" onkeydown="if(event.key==='Enter'){event.preventDefault();adicionarPorCodigoBarras();}">
+                            <button class="btn btn-secondary" style="width:auto;margin-top:0;padding:10px 14px;" onclick="adicionarPorCodigoBarras()"><i class="bi bi-upc-scan" aria-hidden="true"></i> Ler Codigo</button>
                         </div>
                     </div>
                     <div class="produtos-list" id="produtosLista"></div>
+                    <button class="btn btn-primary" onclick="abrirModalProduto()">+ Adicionar Produto</button>
                 </div>
 
                 <!-- Aba de Carrinho -->
@@ -1419,27 +1516,6 @@
                     </div>
                 </div>
                 </div>
-
-                <div id="categoriaProdutos" class="tab-content" style="padding:20px;">
-                    <h3>Categorias dos Produtos</h3>
-                    <div class="form-group sticky-actions" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;">
-                        <div style="flex:2;min-width:220px;">
-                            <label for="pesquisaCategoriaProdutos">Pesquisar produto</label>
-                            <input type="text" id="pesquisaCategoriaProdutos" class="form-control" placeholder="Nome ou código de barras" oninput="atualizarCategoriaProdutos()">
-                        </div>
-                        <div style="flex:1;min-width:220px;">
-                            <label for="filtroCategoriaProdutos">Categoria</label>
-                            <select id="filtroCategoriaProdutos" class="form-control" onchange="atualizarCategoriaProdutos()">
-                                <option value="todas">Todas as categorias</option>
-                            </select>
-                        </div>
-                        <button id="btnTabelaPrecos" class="btn btn-secondary" style="width:auto;margin-top:0;padding:10px 14px;" onclick="alternarTabelaPrecosCategoria()">Mostrar Tabela de Preços</button>
-                        <button class="btn btn-primary" style="width:auto;margin-top:0;padding:10px 14px;" onclick="gerarDocumentoTabelaPrecosCategoria()">Documento para Impressao</button>
-                    </div>
-                    <div id="categoriaProdutosLista"></div>
-                    <div id="tabelaPrecosCategoriaContainer" style="display:none; margin-top:14px;"></div>
-                </div>
-
                 <!-- Aba de Editar Venda -->
                 <div id="editarVenda" class="tab-content" style="padding:20px;">
                     <h3>Vendas cadastradas</h3>
@@ -1450,23 +1526,18 @@
                     </div>
                     <div id="listaVendasEdicao"></div>
                 </div>
-
-                <div id="relatorioDiario" class="tab-content" style="padding:20px;">
-                    <h3>Relatório Diário</h3>
-                    <div id="relatorioDiarioLista"></div>
-                </div>
             </div>
 
             <!-- Painel de Gestão -->
-            <div class="panel gestao-panel">
+            <div class="panel">
                 <h2>Gestão de Estoque</h2>
 
                 <div class="quick-guide">
                     <h3><i class="bi bi-compass" aria-hidden="true"></i> Onde encontrar cada ação</h3>
                     <div class="quick-steps">
-                        <div class="quick-step"><i class="bi bi-box-seam" aria-hidden="true"></i> <strong>Estoque</strong>: cadastrar e ajustar produtos.</div>
-                        <div class="quick-step"><i class="bi bi-receipt" aria-hidden="true"></i> <strong>Relatório</strong>: consultar vendas e exportar dados.</div>
-                        <div class="quick-step"><i class="bi bi-cash-coin" aria-hidden="true"></i> <strong>Recebimentos</strong>: controlar pendências de fiado.</div>
+                        <div class="quick-step"><i class="bi bi-box-seam" aria-hidden="true"></i> <strong>Estoque</strong>: cadastro e ajustes.</div>
+                        <div class="quick-step"><i class="bi bi-receipt" aria-hidden="true"></i> <strong>Relatório</strong>: consultas e exportações.</div>
+                        <div class="quick-step"><i class="bi bi-people" aria-hidden="true"></i> <strong>Associado/Usuários</strong>: gestão de pessoas e acessos.</div>
                     </div>
                     <div id="contextoAtualGestao" class="context-chip">Você está em: <strong>Estoque</strong></div>
                 </div>
@@ -1476,15 +1547,19 @@
                     <button class="tab-btn" onclick="trocarAbaGestao('relatorio')">Relatório de Vendas</button>
                     <button class="tab-btn" onclick="trocarAbaGestao('fiados')"><i class="bi bi-cash-coin" aria-hidden="true"></i> Recebimentos</button>
                     <button class="tab-btn" onclick="trocarAbaGestao('associado')"><i class="bi bi-people" aria-hidden="true"></i> Associado</button>
+                    <button class="tab-btn" onclick="trocarAbaGestao('usuarios')"><i class="bi bi-person-gear" aria-hidden="true"></i> Usuários</button>
                     <button class="tab-btn" onclick="trocarAbaGestao('entrada')"><i class="bi bi-wallet2" aria-hidden="true"></i> Entrada de Dinheiro</button>
                 </div>
 
                 <!-- Aba de Estoque -->
                 <div id="visao" class="tab-content ativo">
                     <div class="sticky-actions">
-                        <button class="btn btn-primary" onclick="abrirModalProduto()" style="margin-bottom: 12px;"><i class="bi bi-plus-circle" aria-hidden="true"></i> Adicionar Produto</button>
+                        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom: 12px;">
+                            <button class="btn btn-primary" onclick="abrirModalProduto()" style="width:auto;margin-top:0;"><i class="bi bi-plus-circle" aria-hidden="true"></i> Adicionar Produto</button>
+                            <button class="btn btn-secondary" onclick="imprimirProdutosEstoqueCritico()" style="width:auto;margin-top:0;"><i class="bi bi-printer" aria-hidden="true"></i> Imprimir Estoque Critico</button>
+                        </div>
                         <div class="form-group" style="margin-bottom: 10px;">
-                            <input type="text" id="filtroEstoqueGestao" class="form-control" placeholder="Pesquisar no estoque por nome ou código de barras" oninput="filtrarEstoqueGestao()">
+                            <input type="text" id="filtroEstoqueGestao" class="form-control" placeholder="Pesquisar no estoque por nome ou codigo de barras" oninput="filtrarEstoqueGestao()">
                         </div>
                     </div>
                     <div id="estoqueGestao"></div>
@@ -1528,11 +1603,17 @@
 
                 <!-- Aba de Fiados -->
                 <div id="fiados" class="tab-content">
-                    <div class="form-group" style="margin: 0 0 10px 0;">
-                        <label for="filtroMesRecebimentos">Mês de referência</label>
-                        <select id="filtroMesRecebimentos" class="form-control" onchange="atualizarClientesFiados()">
-                            <option value="todos">Todos os meses</option>
-                        </select>
+                    <div class="sticky-actions">
+                        <button class="btn btn-secondary" onclick="exportarPlanilhaDevedores()" style="margin-bottom: 12px;"><i class="bi bi-file-earmark-spreadsheet" aria-hidden="true"></i> Gerar Planilha de Devedores</button>
+                        <div class="form-group" style="margin: 0 0 10px 0;">
+                            <label for="filtroMesRecebimentos">Mês de referência</label>
+                            <select id="filtroMesRecebimentos" class="form-control" onchange="atualizarClientesFiados()">
+                                <option value="todos">Todos os meses</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin: 0 0 10px 0;">
+                            <input type="text" id="filtroClienteFiado" placeholder="Pesquisar devedor por nome, graduação ou telefone" class="form-control" oninput="filtrarClientesFiados()">
+                        </div>
                     </div>
                     <div id="clientesFiados"></div>
                 </div>
@@ -1570,12 +1651,42 @@
                             </select>
                             <input type="password" id="novoAssociadoSenha" placeholder="Senha" class="form-control" style="flex:1;min-width:150px;">
                             <input type="text" id="novoAssociadoTel" placeholder="Telefone (opcional)" class="form-control" style="flex:1;min-width:150px;">
-                            <button class="btn btn-primary" onclick="adicionarAssociado()">Adicionar</button>
+                            <button id="btnSalvarAssociado" class="btn btn-primary" style="width:auto;padding:10px 16px;margin-top:0;" onclick="salvarAssociadoFormulario()">Adicionar</button>
+                            <button id="btnCancelarEdicaoAssociado" class="btn btn-secondary" style="display:none;width:auto;padding:10px 16px;margin-top:0;" onclick="cancelarEdicaoAssociado()">Cancelar</button>
                         </div>
                         <div class="form-group" style="margin-top: 10px;">
                             <input type="text" id="filtroAssociado" placeholder="Pesquisar associado por nome, posto ou telefone" class="form-control" oninput="filtrarAssociadosLista()">
                         </div>
                         <div id="associadosContainer" class="associado-list"></div>
+                    </div>
+                </div>
+
+                <!-- Aba de Usuários -->
+                <div id="usuarios" class="tab-content">
+                    <div id="usuariosManagement" style="margin-bottom:20px;">
+                        <div class="associado-toolbar">
+                            <h3>Gerenciar usuários do sistema</h3>
+                            <span id="usuariosCount" class="associado-count">0 usuário(s)</span>
+                        </div>
+                        <div class="form-group" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                            <input type="text" id="novoUsuarioNome" placeholder="Nome completo" class="form-control" style="flex:2;min-width:200px;">
+                            <input type="text" id="novoUsuarioCpf" placeholder="CPF de login" class="form-control" style="flex:1;min-width:160px;">
+                            <input type="password" id="novoUsuarioSenha" placeholder="Senha" class="form-control" style="flex:1;min-width:150px;">
+                            <select id="novoUsuarioPerfil" class="form-control" style="flex:1;min-width:150px;">
+                                <option value="operador">Operador</option>
+                                <option value="admin">Administrador</option>
+                            </select>
+                            <label style="display:inline-flex;align-items:center;gap:6px;margin:0 6px 0 0;white-space:nowrap;">
+                                <input type="checkbox" id="novoUsuarioAtivo" checked>
+                                Ativo
+                            </label>
+                            <button id="btnSalvarUsuario" class="btn btn-primary" style="width:auto;padding:10px 16px;margin-top:0;" onclick="salvarUsuarioFormulario()">Adicionar</button>
+                            <button id="btnCancelarEdicaoUsuario" class="btn btn-secondary" style="display:none;width:auto;padding:10px 16px;margin-top:0;" onclick="cancelarEdicaoUsuario()">Cancelar</button>
+                        </div>
+                        <div class="form-group" style="margin-top: 10px;">
+                            <input type="text" id="filtroUsuario" placeholder="Pesquisar usuário por nome, CPF ou perfil" class="form-control" oninput="filtrarUsuariosLista()">
+                        </div>
+                        <div id="usuariosContainer" class="associado-list"></div>
                     </div>
                 </div>
 
@@ -1600,16 +1711,20 @@
                 <input type="number" id="produtoPreco" placeholder="0.00" step="0.01" min="0">
             </div>
             <div class="form-group">
+                <label for="produtoCasco">Valor do Casco / Vasilhame (R$):</label>
+                <input type="number" id="produtoCasco" placeholder="4.00" step="0.01" min="0" value="4">
+            </div>
+            <div class="form-group">
                 <label for="produtoEstoque">Quantidade em Estoque:</label>
                 <input type="number" id="produtoEstoque" placeholder="0" min="0">
             </div>
             <div class="form-group">
-                <label for="produtoCodigoBarras">Código de Barras (opcional):</label>
+                <label for="produtoCodigoBarras">Codigo de Barras (opcional):</label>
                 <input type="text" id="produtoCodigoBarras" placeholder="Ex: 7891234567890" inputmode="numeric" maxlength="20">
             </div>
             <div class="form-group">
-                <label for="produtoMarca">Marca (opcional, melhora a precisão):</label>
-                <input type="text" id="produtoMarca" placeholder="Ex: Coca-Cola, Nestlé, Ambev">
+                <label for="produtoMarca">Marca (opcional, melhora a precisao):</label>
+                <input type="text" id="produtoMarca" placeholder="Ex: Coca-Cola, Nestle, Ambev">
             </div>
             <div class="form-group">
                 <label for="produtoImagemUrl">Imagem do Produto (busca automatica):</label>
@@ -1674,6 +1789,17 @@
         </div>
     </div>
 
+    <!-- Modal de Consumo de Devedor -->
+    <div class="modal" id="modalConsumoDevedor">
+        <div class="modal-content">
+            <h3 id="modalConsumoTitulo">Consumo do Devedor</h3>
+            <div id="modalConsumoConteudo"></div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" onclick="fecharModalConsumoDevedor()">Fechar</button>
+            </div>
+        </div>
+    </div>
+
     <div class="page-footer">© 2026 Quantum and time - Todos os direitos reservados.</div>
 
     <script src="app-session.js"></script>
@@ -1731,7 +1857,7 @@
             salvarVendas();
             editingSaleId = venda.id; // remember original id
 
-            // devolver ao estoque apenas os produtos da venda original antes da edição
+            // devolve ao estoque apenas os produtos da venda original antes da edição
             venda.itens.forEach(i => {
                 if (/^Casco\s*-/i.test(i.nome || '')) return;
                 const produto = produtos.find(p => p.nome === i.nome);
@@ -1800,8 +1926,12 @@
 
         // autorizações de fiado baseadas nos associados
         let associados = JSON.parse(localStorage.getItem('associados')) || []; // array of {nome, posto, senha, telefone?}
+        let associadoEmEdicao = null;
+        let usuariosSistema = [];
+        let usuarioEmEdicao = null;
         let produtoEmEdicao = null;
         let clienteEmRecebimento = null;
+        let devedorDetalheSelecionado = null;
         let usuarioLogado = null;
         let perfilLogado = 'operador';
         let falhaTemporariaSessao = false;
@@ -2058,26 +2188,16 @@
             const badge = document.getElementById('perfilBadge');
             if (!badge) return;
 
-            const nomeUsuario = usuarioLogado && usuarioLogado.nome ? String(usuarioLogado.nome).toUpperCase() : 'USUÁRIO';
+            const nomeUsuario = usuarioLogado && usuarioLogado.nome ? String(usuarioLogado.nome).toUpperCase() : 'USUARIO';
             badge.textContent = usuarioLogado
                 ? `OLÁ, ${nomeUsuario}`
-                : (falhaTemporariaSessao ? 'SEM CONEXÃO' : 'SESSÃO EXPIRADA');
+                : (falhaTemporariaSessao ? 'SEM CONEXAO' : 'SESSÃO EXPIRADA');
             badge.classList.remove('admin', 'operador');
             badge.classList.add(usuarioEhAdmin() ? 'admin' : 'operador');
         }
 
         function respostaIndicaSessaoExpirada(resposta, contentType = '') {
             return window.TocaSession.respostaIndicaSessaoExpirada(resposta, contentType);
-        }
-
-        function respostaIndicaFalhaCsrf(resposta) {
-            return window.TocaSession.respostaIndicaFalhaCsrf(resposta);
-        }
-
-        function notificarFalhaSeguranca() {
-            if (falhaSegurancaNotificada) return;
-            falhaSegurancaNotificada = true;
-            mostrarAlerta('Sua sessão de segurança ficou desatualizada. Recarregue a página antes de continuar.', 'erro');
         }
 
         function redirecionarParaLogin(atrasoMs = 0) {
@@ -2095,6 +2215,24 @@
         function navegacaoEhRecarregamento() {
             const nav = performance.getEntriesByType('navigation');
             return Array.isArray(nav) && nav[0] && nav[0].type === 'reload';
+        }
+
+        function criarErroSessaoExpirada() {
+            return window.TocaSession.criarErroSessaoExpirada();
+        }
+
+        function erroEhSessaoExpirada(erro) {
+            return window.TocaSession.erroEhSessaoExpirada(erro);
+        }
+
+        function respostaIndicaFalhaCsrf(resposta) {
+            return window.TocaSession.respostaIndicaFalhaCsrf(resposta);
+        }
+
+        function notificarFalhaSeguranca() {
+            if (falhaSegurancaNotificada) return;
+            falhaSegurancaNotificada = true;
+            mostrarAlerta('Sua sessão de segurança ficou desatualizada. Recarregue a página antes de continuar.', 'erro');
         }
 
         function bloquearAcaoAdmin() {
@@ -2198,11 +2336,12 @@
         function aplicarPermissoesInterface() {
             if (usuarioEhAdmin()) return;
 
+            // Operador não acessa gestão de estoque nem usuários.
             const seletoresBloqueados = [
                 "button[onclick*=\"trocarAbaGestao('visao')\"]",
+                "button[onclick*=\"trocarAbaGestao('usuarios')\"]",
                 "button[onclick*=\"abrirAtalhoGestao('visao')\"]",
-                "#atalhoUsuarios",
-                "#atalhoGestaoPagina",
+                "button[onclick*=\"abrirAtalhoGestao('usuarios')\"]",
                 "button[onclick=\"abrirModalProduto()\"]",
                 "button[onclick*=\"exportarDados\"]",
                 "button[onclick*=\"exportarBackupCompleto\"]",
@@ -2217,13 +2356,38 @@
                 });
             });
 
+            const abaUsuarios = document.getElementById('usuarios');
+            if (abaUsuarios) {
+                abaUsuarios.innerHTML = '<div class="associado-empty">Somente administrador pode gerenciar usuários</div>';
+            }
+
             const formAssociado = document.getElementById('novoAssociadoNome')?.closest('.form-group');
             if (formAssociado) formAssociado.style.display = 'none';
 
             const abaVisao = document.getElementById('visao');
-            if (abaVisao && abaVisao.classList.contains('ativo')) {
+            const abaUsuariosAtiva = document.getElementById('usuarios');
+            if ((abaVisao && abaVisao.classList.contains('ativo')) || (abaUsuariosAtiva && abaUsuariosAtiva.classList.contains('ativo'))) {
                 trocarAbaGestao('relatorio');
             }
+        }
+
+        function formatarClienteComGraduacao(cliente) {
+            const nomeOriginal = String(cliente || '').trim();
+            if (!nomeOriginal) return '';
+
+            const nomeSemGraduacao = nomeOriginal.replace(/\s*\([^)]*\)\s*$/, '').trim();
+            const associado = associados.find(a => {
+                const nomeAssociado = String(a.nome || '').trim().toUpperCase();
+                return nomeAssociado === nomeOriginal.toUpperCase() || nomeAssociado === nomeSemGraduacao.toUpperCase();
+            });
+
+            if (!associado || !associado.posto) {
+                return nomeSemGraduacao || nomeOriginal;
+            }
+
+            const nome = String(associado.nome || nomeSemGraduacao || nomeOriginal).toUpperCase();
+            const posto = String(associado.posto || '').toUpperCase();
+            return `${nome} (${posto})`;
         }
 
         // Inicializar
@@ -2243,7 +2407,7 @@
                         }, 5000);
                     }
                 },
-                onAfterBoot: () => {
+                onAfterBoot: async () => {
                     vendaCounter = window.TocaPageBootstrap.atualizarContadorComVendas(vendas, vendaCounter);
                     localStorage.setItem('vendaCounter', String(vendaCounter));
 
@@ -2255,17 +2419,30 @@
                     atualizarListaProdutos();
                     atualizarEstoqueGestao();
                     atualizarRelatorio();
-                    atualizarRelatorioDiario();
                     atualizarListaAssociados();
+                    if (usuarioEhAdmin()) {
+                        await carregarUsuariosSistema();
+                    }
                     mostrarVendasParaEdicao();
                     aplicarPermissoesInterface();
-                    aplicarNavegacaoPrincipalPorQuery();
+                    const navegacaoViaQuery = aplicarNavegacaoPrincipalPorQueryGestao();
+                    const abaHashInicial = obterAbaGestaoDoHash();
+                    if (!navegacaoViaQuery && abaHashInicial) {
+                        trocarAbaGestao(abaHashInicial);
+                    }
                     configurarPainelStickyActions();
                     agendarSalvarServidor();
                     window.TocaPageBootstrap.atualizarIndicadorUltimaVenda();
                     window.TocaPageBootstrap.instalarPreviewImagemProduto(atualizarPreviewImagemProduto);
                 },
             });
+        });
+
+        window.addEventListener('hashchange', () => {
+            const abaHash = obterAbaGestaoDoHash();
+            if (abaHash) {
+                trocarAbaGestao(abaHash);
+            }
         });
 
 
@@ -2306,12 +2483,13 @@
 
                     const info = document.createElement('div');
                     const nome = document.createElement('strong');
-                    nome.textContent = a.nome;
+                    const nomeFormatado = (a.nome || '').toUpperCase();
+                    const postoFormatado = (a.posto || '').toUpperCase();
+                    nome.textContent = nomeFormatado;
                     const meta = document.createElement('div');
                     meta.className = 'associado-meta';
                     const vinculoExibicao = String(a.vinculo || 'NAO').toUpperCase();
-                    const graduacaoExibicao = String(a.posto || '').toUpperCase();
-                    const metaParts = [`Graduacao: ${graduacaoExibicao}`, `Vinculo: ${vinculoExibicao}`].filter(Boolean);
+                    const metaParts = [`Graduacao: ${postoFormatado}`, `Vinculo: ${vinculoExibicao}`];
                     if (a.telefone) {
                         metaParts.push(`Tel: ${a.telefone}`);
                     }
@@ -2321,51 +2499,379 @@
 
                     item.appendChild(info);
                     if (usuarioEhAdmin()) {
+                        const actions = document.createElement('div');
+                        actions.className = 'associado-actions';
+
+                        const btnEditar = document.createElement('button');
+                        btnEditar.className = 'btn associado-edit-btn';
+                        btnEditar.innerHTML = '<i class="bi bi-pencil-fill" aria-hidden="true"></i>';
+                        btnEditar.setAttribute('aria-label', 'Editar associado');
+                        btnEditar.title = 'Editar associado';
+                        btnEditar.onclick = () => editarAssociado(a._idx);
+
                         const btn = document.createElement('button');
-                        btn.className = 'btn btn-danger';
-                        btn.style.padding = '8px 10px';
-                        btn.textContent = 'Remover';
+                        btn.className = 'btn btn-danger associado-remove-btn';
+                        btn.innerHTML = '<i class="bi bi-x-lg" aria-hidden="true"></i>';
+                        btn.setAttribute('aria-label', 'Remover associado');
+                        btn.title = 'Remover associado';
                         btn.onclick = () => removerAssociado(a._idx);
-                        item.appendChild(btn);
+
+                        actions.appendChild(btnEditar);
+                        actions.appendChild(btn);
+                        item.appendChild(actions);
                     }
                     cont.appendChild(item);
                 });
             }
         }
-        function adicionarAssociado(){
-            if(!usuarioEhAdmin()) return bloquearAcaoAdmin();
-            const nome=document.getElementById('novoAssociadoNome').value.trim();
-            const posto=document.getElementById('novoAssociadoPosto').value.trim();
-            const vinculoInformado=document.getElementById('novoAssociadoVinculo').value.trim().toUpperCase();
-            const vinculo=vinculoInformado || 'NAO';
-            const senha=document.getElementById('novoAssociadoSenha').value;
-            const telefone=document.getElementById('novoAssociadoTel').value.trim();
-            if(!nome || !posto || !senha){
-                mostrarAlerta('Nome, graduação militar e senha são obrigatórios', 'erro');
-                return;
-            }
-            if(senha.length < 4){
-                mostrarAlerta('Senha deve ter pelo menos 4 caracteres', 'erro');
-                return;
-            }
-            if(associados.some(a=>a.nome===nome && a.posto===posto)){
-                mostrarAlerta('Associado já cadastrado', 'erro');
-                return;
-            }
-            associados.push({nome,posto,vinculo,senha,telefone: telefone||undefined});
-            salvarAssociados();
-            atualizarListaAssociados();
+        function limparFormularioAssociado(){
             document.getElementById('novoAssociadoNome').value='';
             document.getElementById('novoAssociadoPosto').value='';
             document.getElementById('novoAssociadoVinculo').value='';
             document.getElementById('novoAssociadoSenha').value='';
             document.getElementById('novoAssociadoTel').value='';
         }
+        function entrarModoEdicaoAssociado(index){
+            if(!usuarioEhAdmin()) return bloquearAcaoAdmin();
+            associadoEmEdicao = index;
+            const associado = associados[index];
+            if(!associado) return;
+            document.getElementById('novoAssociadoNome').value = (associado.nome || '').toUpperCase();
+            document.getElementById('novoAssociadoPosto').value = (associado.posto || '').toUpperCase();
+            document.getElementById('novoAssociadoVinculo').value = String(associado.vinculo || 'NAO').toUpperCase() === 'NAO'
+                ? ''
+                : String(associado.vinculo || '').toUpperCase();
+            document.getElementById('novoAssociadoSenha').value = '';
+            document.getElementById('novoAssociadoTel').value = associado.telefone || '';
+            document.getElementById('btnSalvarAssociado').textContent = 'Salvar edição';
+            document.getElementById('btnCancelarEdicaoAssociado').style.display = 'inline-flex';
+            document.getElementById('novoAssociadoNome').focus();
+        }
+        function cancelarEdicaoAssociado(){
+            associadoEmEdicao = null;
+            limparFormularioAssociado();
+            document.getElementById('btnSalvarAssociado').textContent = 'Adicionar';
+            document.getElementById('btnCancelarEdicaoAssociado').style.display = 'none';
+        }
+        function editarAssociado(index){
+            if(!usuarioEhAdmin()) return bloquearAcaoAdmin();
+            entrarModoEdicaoAssociado(index);
+        }
+        function salvarAssociadoFormulario(){
+            if(!usuarioEhAdmin()) return bloquearAcaoAdmin();
+            const nome=document.getElementById('novoAssociadoNome').value.trim().toUpperCase();
+            const posto=document.getElementById('novoAssociadoPosto').value.trim().toUpperCase();
+            const vinculoInformado = document.getElementById('novoAssociadoVinculo').value.trim().toUpperCase();
+            const vinculo = vinculoInformado || 'NAO';
+            let senha=document.getElementById('novoAssociadoSenha').value;
+            const telefone=document.getElementById('novoAssociadoTel').value.trim();
+            const editando = associadoEmEdicao !== null;
+
+            if(!nome || !posto){
+                mostrarAlerta('Nome e graduação militar são obrigatórios', 'erro');
+                return;
+            }
+
+            if(!editando && !senha){
+                mostrarAlerta('Nome, graduação militar e senha são obrigatórios', 'erro');
+                return;
+            }
+
+            if(senha && senha.length < 4){
+                mostrarAlerta('Senha deve ter pelo menos 4 caracteres', 'erro');
+                return;
+            }
+
+            if(!senha && editando){
+                senha = associados[associadoEmEdicao].senha;
+            }
+
+            if(associados.some((a, idx)=>idx!==associadoEmEdicao && a.nome===nome && a.posto===posto)){
+                mostrarAlerta('Associado já cadastrado', 'erro');
+                return;
+            }
+
+            if(editando){
+                associados[associadoEmEdicao] = {
+                    nome,
+                    posto,
+                    vinculo,
+                    senha,
+                    telefone: telefone || undefined
+                };
+            } else {
+                associados.push({nome,posto,vinculo,senha,telefone: telefone||undefined});
+            }
+
+            salvarAssociados();
+            atualizarListaAssociados();
+            cancelarEdicaoAssociado();
+        }
         function removerAssociado(index){
             if(!usuarioEhAdmin()) return bloquearAcaoAdmin();
+            if(associadoEmEdicao === index){
+                cancelarEdicaoAssociado();
+            }
             associados.splice(index, 1);
             salvarAssociados();
             atualizarListaAssociados();
+        }
+
+        function normalizarCpf(cpf){
+            return String(cpf || '').replace(/\D/g, '');
+        }
+
+        function formatarCpf(cpf){
+            const digitos = normalizarCpf(cpf);
+            if (digitos.length !== 11) return cpf || '';
+            return `${digitos.slice(0,3)}.${digitos.slice(3,6)}.${digitos.slice(6,9)}-${digitos.slice(9,11)}`;
+        }
+
+        async function carregarUsuariosSistema(){
+            if(!usuarioEhAdmin()) return;
+            const container = document.getElementById('usuariosContainer');
+            if(!container) return;
+
+            try {
+                const resposta = await fetch('/api/users');
+                const contentType = (resposta.headers.get('content-type') || '').toLowerCase();
+                if (respostaIndicaSessaoExpirada(resposta, contentType)) {
+                    throw criarErroSessaoExpirada();
+                }
+                if (!contentType.includes('application/json')) {
+                    throw new Error('Não foi possível validar a resposta do servidor ao buscar usuários');
+                }
+                if(!resposta.ok){
+                    const erroApi = await resposta.json().catch(() => ({}));
+                    throw new Error(erroApi.error || 'Falha ao buscar usuários');
+                }
+                usuariosSistema = await resposta.json();
+                atualizarListaUsuarios();
+            } catch (erro) {
+                container.innerHTML = '<div class="associado-empty">Não foi possível carregar os usuários</div>';
+                mostrarAlerta(erro.message || 'Erro ao carregar usuários', 'erro');
+                if (erroEhSessaoExpirada(erro)) {
+                    redirecionarParaLogin(700);
+                }
+            }
+        }
+
+        function filtrarUsuariosLista(){
+            atualizarListaUsuarios();
+        }
+
+        function atualizarListaUsuarios(){
+            const cont = document.getElementById('usuariosContainer');
+            const countEl = document.getElementById('usuariosCount');
+            const filtroEl = document.getElementById('filtroUsuario');
+            if(!cont) return;
+
+            const termo = filtroEl ? filtroEl.value.trim().toLowerCase() : '';
+            const usuariosComIndice = usuariosSistema.map((u, idx) => ({...u, _idx: idx}));
+            const lista = termo
+                ? usuariosComIndice.filter(u =>
+                    String(u.nome || '').toLowerCase().includes(termo) ||
+                    String(u.cpf || '').toLowerCase().includes(termo) ||
+                    String(u.perfil || '').toLowerCase().includes(termo)
+                )
+                : usuariosComIndice;
+
+            if (countEl) {
+                countEl.textContent = `${lista.length} usuário(s)`;
+            }
+
+            cont.innerHTML = '';
+            if(lista.length === 0){
+                cont.innerHTML = '<div class="associado-empty">Nenhum usuário encontrado</div>';
+                return;
+            }
+
+            lista.forEach(u => {
+                const item = document.createElement('div');
+                item.className = 'associado-item';
+
+                const info = document.createElement('div');
+                const nome = document.createElement('strong');
+                const perfil = String(u.perfil || 'operador').toUpperCase();
+                nome.textContent = `${String(u.nome || '').toUpperCase()} (${perfil})`;
+
+                const meta = document.createElement('div');
+                meta.className = 'associado-meta';
+                const status = u.ativo === false ? 'INATIVO' : 'ATIVO';
+                meta.textContent = `CPF: ${formatarCpf(u.cpf)} | Status: ${status}`;
+
+                info.appendChild(nome);
+                info.appendChild(meta);
+
+                const actions = document.createElement('div');
+                actions.className = 'associado-actions';
+
+                const btnEditar = document.createElement('button');
+                btnEditar.className = 'btn associado-edit-btn';
+                btnEditar.innerHTML = '<i class="bi bi-pencil-fill" aria-hidden="true"></i>';
+                btnEditar.setAttribute('aria-label', 'Editar usuário');
+                btnEditar.title = 'Editar usuário';
+                btnEditar.onclick = () => editarUsuario(u._idx);
+
+                const btnRemover = document.createElement('button');
+                btnRemover.className = 'btn btn-danger associado-remove-btn';
+                btnRemover.innerHTML = '<i class="bi bi-x-lg" aria-hidden="true"></i>';
+                btnRemover.setAttribute('aria-label', 'Remover usuário');
+                btnRemover.title = 'Remover usuário';
+                btnRemover.onclick = () => removerUsuario(u._idx);
+
+                actions.appendChild(btnEditar);
+                actions.appendChild(btnRemover);
+                item.appendChild(info);
+                item.appendChild(actions);
+                cont.appendChild(item);
+            });
+        }
+
+        function limparFormularioUsuario(){
+            document.getElementById('novoUsuarioNome').value = '';
+            document.getElementById('novoUsuarioCpf').value = '';
+            document.getElementById('novoUsuarioSenha').value = '';
+            document.getElementById('novoUsuarioPerfil').value = 'operador';
+            document.getElementById('novoUsuarioAtivo').checked = true;
+        }
+
+        function entrarModoEdicaoUsuario(index){
+            usuarioEmEdicao = index;
+            const usuario = usuariosSistema[index];
+            if(!usuario) return;
+
+            document.getElementById('novoUsuarioNome').value = usuario.nome || '';
+            document.getElementById('novoUsuarioCpf').value = usuario.cpf || '';
+            document.getElementById('novoUsuarioSenha').value = '';
+            document.getElementById('novoUsuarioPerfil').value = usuario.perfil || 'operador';
+            document.getElementById('novoUsuarioAtivo').checked = usuario.ativo !== false;
+            document.getElementById('btnSalvarUsuario').textContent = 'Salvar edição';
+            document.getElementById('btnCancelarEdicaoUsuario').style.display = 'inline-flex';
+            document.getElementById('novoUsuarioNome').focus();
+        }
+
+        function cancelarEdicaoUsuario(){
+            usuarioEmEdicao = null;
+            limparFormularioUsuario();
+            document.getElementById('btnSalvarUsuario').textContent = 'Adicionar';
+            document.getElementById('btnCancelarEdicaoUsuario').style.display = 'none';
+        }
+
+        function editarUsuario(index){
+            if(!usuarioEhAdmin()) return bloquearAcaoAdmin();
+            entrarModoEdicaoUsuario(index);
+        }
+
+        async function salvarUsuarioFormulario(){
+            const nome = document.getElementById('novoUsuarioNome').value.trim();
+            const cpf = document.getElementById('novoUsuarioCpf').value.trim();
+            const senha = document.getElementById('novoUsuarioSenha').value;
+            const perfil = document.getElementById('novoUsuarioPerfil').value;
+            const ativo = document.getElementById('novoUsuarioAtivo').checked;
+            const editando = usuarioEmEdicao !== null;
+
+            if(!nome || !cpf){
+                mostrarAlerta('Nome e CPF são obrigatórios', 'erro');
+                return;
+            }
+
+            if(normalizarCpf(cpf).length !== 11){
+                mostrarAlerta('CPF inválido', 'erro');
+                return;
+            }
+
+            if(!editando && !senha){
+                mostrarAlerta('Senha é obrigatória para novo usuário', 'erro');
+                return;
+            }
+
+            if(senha && senha.length < 4){
+                mostrarAlerta('Senha deve ter pelo menos 4 caracteres', 'erro');
+                return;
+            }
+
+            const payload = {
+                nome,
+                cpf: formatarCpf(cpf),
+                perfil,
+                ativo
+            };
+
+            if (senha) {
+                payload.senha = senha;
+            }
+
+            const url = editando ? `/api/users/${usuariosSistema[usuarioEmEdicao].id}` : '/api/users';
+            const method = editando ? 'PUT' : 'POST';
+
+            mostrarAlerta(editando ? 'Salvando edição do usuário...' : 'Salvando novo usuário...', 'sucesso');
+
+            try {
+                const resposta = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const contentType = (resposta.headers.get('content-type') || '').toLowerCase();
+                if (respostaIndicaSessaoExpirada(resposta, contentType)) {
+                    throw criarErroSessaoExpirada();
+                }
+                const conteudo = contentType.includes('application/json')
+                    ? await resposta.json().catch(() => ({}))
+                    : {};
+
+                if (!contentType.includes('application/json')) {
+                    throw new Error('Não foi possível validar a resposta do servidor ao salvar usuário');
+                }
+
+                if(!resposta.ok){
+                    throw new Error(conteudo.error || 'Não foi possível salvar o usuário');
+                }
+
+                mostrarAlerta(editando ? 'Usuário atualizado com sucesso' : 'Usuário cadastrado com sucesso', 'sucesso');
+                cancelarEdicaoUsuario();
+                await carregarUsuariosSistema();
+            } catch (erro) {
+                mostrarAlerta(erro.message || 'Erro ao salvar usuário', 'erro');
+                if (erroEhSessaoExpirada(erro)) {
+                    redirecionarParaLogin(700);
+                }
+            }
+        }
+
+        async function removerUsuario(index){
+            if(!usuarioEhAdmin()) return bloquearAcaoAdmin();
+            const usuario = usuariosSistema[index];
+            if(!usuario) return;
+
+            if(!confirm(`Remover o usuário ${usuario.nome}?`)){
+                return;
+            }
+
+            try {
+                const resposta = await fetch(`/api/users/${usuario.id}`, { method: 'DELETE' });
+                if (respostaIndicaSessaoExpirada(resposta, '')) {
+                    throw criarErroSessaoExpirada();
+                }
+                const conteudo = await resposta.json().catch(() => ({}));
+                if(!resposta.ok){
+                    throw new Error(conteudo.error || 'Não foi possível remover o usuário');
+                }
+
+                if(usuarioEmEdicao === index){
+                    cancelarEdicaoUsuario();
+                }
+
+                mostrarAlerta('Usuário removido com sucesso', 'sucesso');
+                await carregarUsuariosSistema();
+            } catch (erro) {
+                mostrarAlerta(erro.message || 'Erro ao remover usuário', 'erro');
+                if (erroEhSessaoExpirada(erro)) {
+                    redirecionarParaLogin(700);
+                }
+            }
         }
 
         // Atualizar Opções de Pagamento
@@ -2412,9 +2918,11 @@
                 if(a.nome.toLowerCase().includes(termo) || a.posto.toLowerCase().includes(termo) || (a.telefone && a.telefone.toLowerCase().includes(termo))){
                     const item = document.createElement('div');
                     item.className = 'assoc-item';
-                    item.textContent = `${a.nome} (${a.posto}${a.telefone ? ' - '+a.telefone : ''})`;
+                    const nomeFormatado = (a.nome || '').toUpperCase();
+                    const postoFormatado = (a.posto || '').toUpperCase();
+                    item.textContent = `${nomeFormatado} (${postoFormatado}${a.telefone ? ' - '+a.telefone : ''})`;
                     item.onclick = ()=>{
-                        document.getElementById('associadoSearch').value = a.nome;
+                        document.getElementById('associadoSearch').value = nomeFormatado;
                         selecionarAssociado();
                     };
                     dropdown.appendChild(item);
@@ -2512,7 +3020,7 @@
 
         function trocarAba(aba, btnEl) {
             if (aba === 'carrinho') aba = 'estoque';
-            document.querySelectorAll('#estoque, #carrinho, #categoriaProdutos, #editarVenda, #relatorioDiario').forEach(el => el.classList.remove('ativo'));
+            document.querySelectorAll('#principal, #estoque, #carrinho, #editarVenda').forEach(el => el.classList.remove('ativo'));
             document.querySelectorAll('.panel:first-of-type .tabs .tab-btn').forEach(el => el.classList.remove('ativo'));
             document.getElementById(aba).classList.add('ativo');
             if (aba === 'estoque') {
@@ -2531,20 +3039,13 @@
             if (aba === 'editarVenda') {
                 mostrarVendasParaEdicao();
             }
-            if (aba === 'relatorioDiario') {
-                atualizarRelatorioDiario();
-            }
-            if (aba === 'categoriaProdutos') {
-                atualizarCategoriaProdutos();
-            }
 
             const nomesAbas = {
+                principal: 'Principal',
                 estoque: 'Produtos + Carrinho',
-                categoriaProdutos: 'Categoria dos Produtos',
-                editarVenda: 'Editar Venda',
-                relatorioDiario: 'Relatório Diário'
+                editarVenda: 'Editar Venda'
             };
-            atualizarContextoAtual('contextoAtualVendas', nomesAbas[aba] || 'Produtos + Carrinho');
+            atualizarContextoAtual('contextoAtualVendas', nomesAbas[aba] || 'Principal');
         }
 
         function abrirAtalhoVendas(aba) {
@@ -2556,16 +3057,22 @@
             trocarAbaGestao(aba);
         }
 
-        function aplicarNavegacaoPrincipalPorQuery() {
+        function obterAbaGestaoDoHash() {
+            const hash = String(window.location.hash || '').replace('#', '').trim().toLowerCase();
+            const abasValidas = ['visao', 'relatorio', 'fiados', 'associado', 'usuarios', 'entrada'];
+            return abasValidas.includes(hash) ? hash : null;
+        }
+
+        function aplicarNavegacaoPrincipalPorQueryGestao() {
             const params = new URLSearchParams(window.location.search || '');
             const aba = String(params.get('aba') || '').trim();
             const modoSolo = String(params.get('solo') || '') === '1';
-            const abasVendas = ['estoque', 'categoriaProdutos', 'editarVenda', 'relatorioDiario'];
-            const abasGestao = ['visao', 'relatorio', 'fiados', 'associado', 'entrada'];
-            if (!aba) return;
+            const abasVendas = ['estoque', 'editarVenda'];
+            const abasGestao = ['visao', 'relatorio', 'fiados', 'associado', 'usuarios', 'entrada'];
+            if (!aba) return false;
 
             if (abasVendas.includes(aba)) {
-                const btn = document.querySelector(`.panel:first-of-type .tabs .tab-btn[data-aba="${aba}"]`);
+                const btn = document.querySelector(`.panel.gestao-panel .tabs .tab-btn[data-aba="${aba}"]`);
                 trocarAba(aba, btn || null);
                 if (modoSolo) {
                     const panelGestao = document.querySelector('.content .panel:nth-of-type(2)');
@@ -2573,29 +3080,32 @@
                     const content = document.querySelector('.content');
                     if (content) content.style.gridTemplateColumns = '1fr';
                 }
-                return;
+                return true;
             }
 
             if (abasGestao.includes(aba)) {
                 trocarAbaGestao(aba);
                 if (modoSolo) {
-                    const panelVendas = document.querySelector('.content .panel:first-of-type');
+                    const panelVendas = document.querySelector('.content .panel.gestao-panel');
                     if (panelVendas) panelVendas.style.display = 'none';
                     const content = document.querySelector('.content');
                     if (content) content.style.gridTemplateColumns = '1fr';
                 }
+                return true;
             }
+
+            return false;
         }
 
         function trocarAbaGestao(aba) {
-            if (!usuarioEhAdmin() && aba === 'visao') {
+            if (!usuarioEhAdmin() && (aba === 'visao' || aba === 'usuarios')) {
                 mostrarAlerta('Operador não tem acesso a esta aba', 'erro');
                 aba = 'relatorio';
             }
-            document.querySelectorAll('#visao, #relatorio, #fiados, #associado, #entrada').forEach(el => el.classList.remove('ativo'));
+            document.querySelectorAll('#visao, #relatorio, #fiados, #associado, #usuarios, #entrada').forEach(el => el.classList.remove('ativo'));
             const gestaoBtns = document.querySelectorAll('.content .panel:nth-of-type(2) .tabs .tab-btn');
             gestaoBtns.forEach((el, idx) => {
-                if ((aba === 'visao' && idx === 0) || (aba === 'relatorio' && idx === 1) || (aba === 'fiados' && idx === 2) || (aba === 'associado' && idx === 3) || (aba === 'entrada' && idx === 4)) {
+                if ((aba === 'visao' && idx === 0) || (aba === 'relatorio' && idx === 1) || (aba === 'fiados' && idx === 2) || (aba === 'associado' && idx === 3) || (aba === 'usuarios' && idx === 4) || (aba === 'entrada' && idx === 5)) {
                     el.classList.add('ativo');
                 } else {
                     el.classList.remove('ativo');
@@ -2606,6 +3116,7 @@
             if (aba === 'visao') atualizarEstoqueGestao();
             if (aba === 'fiados') atualizarClientesFiados();
             if (aba === 'associado') atualizarListaAssociados();
+            if (aba === 'usuarios') carregarUsuariosSistema();
             if (aba === 'entrada') atualizarEntradaDinheiro();
 
             const nomesAbas = {
@@ -2613,9 +3124,15 @@
                 relatorio: 'Relatório de Vendas',
                 fiados: 'Recebimentos',
                 associado: 'Associado',
+                usuarios: 'Usuários',
                 entrada: 'Entrada de Dinheiro'
             };
             atualizarContextoAtual('contextoAtualGestao', nomesAbas[aba] || 'Estoque');
+
+            const hashAtual = String(window.location.hash || '').replace('#', '');
+            if (hashAtual !== aba) {
+                history.replaceState(null, '', `#${aba}`);
+            }
         }
 
         // Filtrar Produtos
@@ -2630,7 +3147,6 @@
                 const codigoProduto = limparCodigoBarras(String(produto.codigoBarras || ''));
                 const correspondeTexto = !pesquisa
                     || produto.nome.toLowerCase().includes(pesquisa)
-                    || String(produto.categoria || '').toLowerCase().includes(pesquisa)
                     || String(produto.codigoBarras || '').toLowerCase().includes(pesquisa);
                 const correspondeCodigo = !pesquisaCodigo
                     || codigoProduto.includes(pesquisaCodigo);
@@ -2658,9 +3174,6 @@
                         <div class="produto-estoque" style="margin-bottom: 8px; font-size: 0.82em;">
                             <i class="bi bi-upc-scan" aria-hidden="true"></i> ${produto.codigoBarras ? produto.codigoBarras : 'Sem codigo'}
                         </div>
-                        <div class="produto-estoque" style="margin-bottom: 8px; font-size: 0.82em;">
-                            <i class="bi bi-tags" aria-hidden="true"></i> ${produto.categoria ? produto.categoria : 'Sem categoria'}
-                        </div>
                         <div class="produto-estoque ${statusEstoque}">
                             Estoque: ${produto.estoque} un.
                         </div>
@@ -2679,243 +3192,6 @@
             const pesquisaCodigo = document.getElementById('pesquisaCodigoBarras');
             if (pesquisaCodigo) pesquisaCodigo.value = '';
             filtrarProdutos();
-            atualizarCategoriaProdutos();
-        }
-
-        function obterCategoriaProduto(produto) {
-            const categoria = String(produto && produto.categoria ? produto.categoria : '').trim();
-            return categoria || 'Sem categoria';
-        }
-
-        let tabelaPrecosCategoriaVisivel = false;
-
-        function alternarTabelaPrecosCategoria() {
-            tabelaPrecosCategoriaVisivel = !tabelaPrecosCategoriaVisivel;
-            const botao = document.getElementById('btnTabelaPrecos');
-            const containerTabela = document.getElementById('tabelaPrecosCategoriaContainer');
-            if (botao) {
-                botao.textContent = tabelaPrecosCategoriaVisivel
-                    ? 'Ocultar Tabela de Preços'
-                    : 'Mostrar Tabela de Preços';
-            }
-            if (containerTabela) {
-                containerTabela.style.display = tabelaPrecosCategoriaVisivel ? 'block' : 'none';
-            }
-            atualizarCategoriaProdutos();
-        }
-
-        function atualizarTabelaPrecosCategoria(produtosFiltrados) {
-            const containerTabela = document.getElementById('tabelaPrecosCategoriaContainer');
-            if (!containerTabela) return;
-
-            if (!Array.isArray(produtosFiltrados) || produtosFiltrados.length === 0) {
-                containerTabela.innerHTML = '<div class="associado-empty">Sem produtos para montar a tabela de preços</div>';
-                return;
-            }
-
-            const linhas = [...produtosFiltrados]
-                .sort((a, b) => {
-                    const cat = obterCategoriaProduto(a).localeCompare(obterCategoriaProduto(b), 'pt-BR');
-                    if (cat !== 0) return cat;
-                    return String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR');
-                })
-                .map((produto) => `
-                    <tr>
-                        <td style="padding:8px;border-bottom:1px solid #e2e8f0;">${obterCategoriaProduto(produto)}</td>
-                        <td style="padding:8px;border-bottom:1px solid #e2e8f0;">${produto.nome || '-'}</td>
-                        <td style="padding:8px;border-bottom:1px solid #e2e8f0;">R$ ${Number(produto.preco || 0).toFixed(2)}</td>
-                        <td style="padding:8px;border-bottom:1px solid #e2e8f0;">${produto.codigoBarras || '-'}</td>
-                    </tr>
-                `)
-                .join('');
-
-            containerTabela.innerHTML = `
-                <div class="associado-count" style="margin-bottom:8px; display:inline-flex;">Tabela de Preços (${produtosFiltrados.length} item(ns))</div>
-                <div style="overflow:auto; border:1px solid #dbe4ef; border-radius:12px; background:#fff;">
-                    <table style="width:100%; border-collapse:collapse; min-width:620px;">
-                        <thead>
-                            <tr style="background:#f8fafc; text-align:left;">
-                                <th style="padding:10px; border-bottom:1px solid #dbe4ef;">Categoria</th>
-                                <th style="padding:10px; border-bottom:1px solid #dbe4ef;">Produto</th>
-                                <th style="padding:10px; border-bottom:1px solid #dbe4ef;">Preço</th>
-                                <th style="padding:10px; border-bottom:1px solid #dbe4ef;">Codigo</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${linhas}
-                        </tbody>
-                    </table>
-                </div>
-            `;
-        }
-
-        function obterProdutosFiltradosCategoria() {
-            const filtroSelect = document.getElementById('filtroCategoriaProdutos');
-            const pesquisaEl = document.getElementById('pesquisaCategoriaProdutos');
-            const termo = String(pesquisaEl ? pesquisaEl.value : '').trim().toLowerCase();
-            const categoriaSelecionada = filtroSelect ? filtroSelect.value : 'todas';
-
-            return produtos.filter((produto) => {
-                const categoria = obterCategoriaProduto(produto);
-                const correspondeCategoria = categoriaSelecionada === 'todas' || categoria === categoriaSelecionada;
-                const correspondePesquisa = !termo
-                    || String(produto.nome || '').toLowerCase().includes(termo)
-                    || String(produto.codigoBarras || '').toLowerCase().includes(termo);
-                return correspondeCategoria && correspondePesquisa;
-            });
-        }
-
-        function agruparProdutosPorCategoria(produtosFiltrados) {
-            const grupos = {};
-            produtosFiltrados.forEach((produto) => {
-                const categoria = obterCategoriaProduto(produto);
-                if (!grupos[categoria]) grupos[categoria] = [];
-                grupos[categoria].push(produto);
-            });
-            return grupos;
-        }
-
-        function gerarDocumentoTabelaPrecosCategoria() {
-            const produtosFiltrados = obterProdutosFiltradosCategoria();
-            if (!Array.isArray(produtosFiltrados) || produtosFiltrados.length === 0) {
-                mostrarAlerta('Nao ha produtos para gerar o documento de preços', 'erro');
-                return;
-            }
-
-            const grupos = agruparProdutosPorCategoria(produtosFiltrados);
-            const categorias = Object.keys(grupos).sort((a, b) => a.localeCompare(b, 'pt-BR'));
-            const dataGeracao = new Date().toLocaleString('pt-BR');
-
-            const secoesHtml = categorias.map((categoria) => {
-                const itens = grupos[categoria]
-                    .sort((a, b) => String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR'))
-                    .map((produto) => `
-                        <tr>
-                            <td>${produto.nome || '-'}</td>
-                            <td class="preco">R$ ${Number(produto.preco || 0).toFixed(2)}</td>
-                        </tr>
-                    `)
-                    .join('');
-
-                return `
-                    <section class="categoria-bloco">
-                        <h2>${categoria}</h2>
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Produto</th>
-                                    <th>Preço</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${itens}
-                            </tbody>
-                        </table>
-                    </section>
-                `;
-            }).join('');
-
-            const htmlImpressao = `
-                <!DOCTYPE html>
-                <html lang="pt-BR">
-                <head>
-                    <meta charset="UTF-8">
-                    <title>Tabela de Preços</title>
-                    <style>
-                        body { font-family: Arial, sans-serif; margin: 24px; color: #111827; }
-                        h1 { margin: 0 0 8px 0; font-size: 24px; }
-                        .meta { margin-bottom: 18px; color: #374151; font-size: 13px; }
-                        .categoria-bloco { margin-bottom: 18px; page-break-inside: avoid; }
-                        .categoria-bloco h2 { margin: 0 0 6px 0; font-size: 18px; border-bottom: 1px solid #d1d5db; padding-bottom: 4px; }
-                        table { width: 100%; border-collapse: collapse; }
-                        th, td { border: 1px solid #d1d5db; padding: 8px; text-align: left; }
-                        th { background: #f3f4f6; }
-                        td.preco { font-weight: 700; width: 150px; }
-                        @media print { body { margin: 12mm; } }
-                    </style>
-                </head>
-                <body>
-                    <h1>Tabela de Preços</h1>
-                    <div class="meta">Gerado em ${dataGeracao} | Total de produtos: ${produtosFiltrados.length}</div>
-                    ${secoesHtml}
-                </body>
-                </html>
-            `;
-
-            const iframe = document.createElement('iframe');
-            iframe.style.cssText = 'position:fixed;width:0;height:0;border:0;display:none;';
-            document.body.appendChild(iframe);
-            iframe.contentDocument.open();
-            iframe.contentDocument.write(htmlImpressao);
-            iframe.contentDocument.close();
-            setTimeout(() => {
-                iframe.contentWindow.focus();
-                iframe.contentWindow.print();
-                setTimeout(() => document.body.removeChild(iframe), 1000);
-            }, 300);
-        }
-
-        function atualizarCategoriaProdutos() {
-            const container = document.getElementById('categoriaProdutosLista');
-            const filtroSelect = document.getElementById('filtroCategoriaProdutos');
-            const pesquisaEl = document.getElementById('pesquisaCategoriaProdutos');
-            if (!container || !filtroSelect) return;
-
-            const categorias = Array.from(new Set(produtos.map((produto) => obterCategoriaProduto(produto)))).sort((a, b) => a.localeCompare(b, 'pt-BR'));
-            const valorAtual = filtroSelect.value || 'todas';
-            filtroSelect.innerHTML = '<option value="todas">Todas as categorias</option>';
-            categorias.forEach((categoria) => {
-                const option = document.createElement('option');
-                option.value = categoria;
-                option.textContent = categoria;
-                filtroSelect.appendChild(option);
-            });
-            filtroSelect.value = categorias.includes(valorAtual) || valorAtual === 'todas' ? valorAtual : 'todas';
-
-            const produtosFiltrados = obterProdutosFiltradosCategoria();
-
-            if (produtosFiltrados.length === 0) {
-                container.innerHTML = '<div class="associado-empty">Nenhum produto encontrado para esta categoria</div>';
-                if (tabelaPrecosCategoriaVisivel) {
-                    atualizarTabelaPrecosCategoria([]);
-                }
-                return;
-            }
-
-            const grupos = agruparProdutosPorCategoria(produtosFiltrados);
-
-            const html = Object.keys(grupos)
-                .sort((a, b) => a.localeCompare(b, 'pt-BR'))
-                .map((categoria) => {
-                    const itens = grupos[categoria]
-                        .map((produto) => `
-                            <div class="estoque-item">
-                                <div>
-                                    <strong>${produto.nome}</strong>
-                                    <div class="associado-meta"><i class="bi bi-upc-scan" aria-hidden="true"></i> Codigo: ${produto.codigoBarras || 'Sem codigo'}</div>
-                                    <div class="associado-meta">Preco: R$ ${Number(produto.preco || 0).toFixed(2)}</div>
-                                    <div class="associado-meta">Estoque: <strong>${Number(produto.estoque || 0)} un.</strong></div>
-                                </div>
-                            </div>
-                        `)
-                        .join('');
-
-                    return `
-                        <div style="margin-bottom: 14px;">
-                            <div class="associado-count" style="margin-bottom: 8px; display: inline-flex;">
-                                <i class="bi bi-folder2-open" aria-hidden="true" style="margin-right: 6px;"></i>${categoria} (${grupos[categoria].length})
-                            </div>
-                            ${itens}
-                        </div>
-                    `;
-                })
-                .join('');
-
-            container.innerHTML = html;
-
-            if (tabelaPrecosCategoriaVisivel) {
-                atualizarTabelaPrecosCategoria(produtosFiltrados);
-            }
         }
 
         // Atualizar Estoque - Gestão
@@ -2933,7 +3209,6 @@
                 if (!termo) return true;
                 return (
                     produto.nome.toLowerCase().includes(termo) ||
-                    String(produto.categoria || '').toLowerCase().includes(termo) ||
                     String(produto.codigoBarras || '').toLowerCase().includes(termo)
                 );
             });
@@ -2969,7 +3244,6 @@
                             ${imagemProduto}
                             <div>
                             <strong>${iconStatus} ${produto.nome}</strong>
-                            <div class="associado-meta"><i class="bi bi-tags" aria-hidden="true"></i> Categoria: ${produto.categoria ? produto.categoria : 'Sem categoria'}</div>
                             <div class="associado-meta"><i class="bi bi-upc-scan" aria-hidden="true"></i> Codigo: ${produto.codigoBarras ? produto.codigoBarras : 'Sem codigo'}</div>
                             <div class="associado-meta">Preco: R$ ${produto.preco.toFixed(2)}</div>
                             <div class="associado-meta">Estoque: <strong>${produto.estoque} un.</strong> ${produto.estoque <= 10 ? '<span class="estoque-status-critico">(CRITICO)</span>' : ''}</div>
@@ -2980,6 +3254,122 @@
                 `;
                 gestao.innerHTML += html;
             });
+        }
+
+        function imprimirProdutosEstoqueCritico() {
+            const produtosCriticos = produtos
+                .filter(produto => Number(produto.estoque) <= 10)
+                .sort((a, b) => {
+                    const categoriaA = String(a.categoria || 'Sem categoria').toLowerCase();
+                    const categoriaB = String(b.categoria || 'Sem categoria').toLowerCase();
+                    if (categoriaA !== categoriaB) {
+                        return categoriaA.localeCompare(categoriaB, 'pt-BR');
+                    }
+
+                    const estoqueA = Number(a.estoque || 0);
+                    const estoqueB = Number(b.estoque || 0);
+                    if (estoqueA !== estoqueB) {
+                        return estoqueA - estoqueB;
+                    }
+
+                    return String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR');
+                });
+
+            if (produtosCriticos.length === 0) {
+                mostrarAlerta('Nenhum produto em estoque critico (igual ou menor que 10)', 'erro');
+                return;
+            }
+
+            const escaparHtml = (valor) => String(valor ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+
+            const gruposPorCategoria = produtosCriticos.reduce((acc, produto) => {
+                const categoria = String(produto.categoria || '').trim() || 'Sem categoria';
+                if (!acc[categoria]) {
+                    acc[categoria] = [];
+                }
+                acc[categoria].push(produto);
+                return acc;
+            }, {});
+
+            const categoriasOrdenadas = Object.keys(gruposPorCategoria)
+                .sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
+            const secoesCategoria = categoriasOrdenadas.map((categoria) => {
+                const itens = gruposPorCategoria[categoria];
+                const linhasCategoria = itens.map((produto, index) => `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${escaparHtml(produto.nome)}</td>
+                        <td>${escaparHtml(produto.codigoBarras || 'Sem codigo')}</td>
+                        <td>R$ ${Number(produto.preco || 0).toFixed(2)}</td>
+                        <td><strong>${Number(produto.estoque || 0)}</strong></td>
+                    </tr>
+                `).join('');
+
+                return `
+                    <section class="categoria-bloco">
+                        <h2>${escaparHtml(categoria)} (${itens.length})</h2>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Produto</th>
+                                    <th>Codigo de Barras</th>
+                                    <th>Preco</th>
+                                    <th>Estoque</th>
+                                </tr>
+                            </thead>
+                            <tbody>${linhasCategoria}</tbody>
+                        </table>
+                    </section>
+                `;
+            }).join('');
+
+            const agora = new Date().toLocaleString('pt-BR');
+            const conteudo = `
+                <!DOCTYPE html>
+                <html lang="pt-BR">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Estoque Critico (<= 10)</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 24px; color: #111827; }
+                        h1 { margin: 0 0 6px 0; font-size: 20px; }
+                        h2 { margin: 16px 0 8px 0; font-size: 16px; }
+                        p { margin: 0 0 14px 0; color: #4b5563; }
+                        table { width: 100%; border-collapse: collapse; }
+                        th, td { border: 1px solid #d1d5db; padding: 8px; font-size: 13px; text-align: left; }
+                        th { background: #f3f4f6; }
+                        tr:nth-child(even) td { background: #f9fafb; }
+                        .categoria-bloco { margin-bottom: 14px; page-break-inside: avoid; }
+                        .resumo { margin-top: 10px; font-size: 13px; font-weight: 700; }
+                    </style>
+                </head>
+                <body>
+                    <h1>Produtos com estoque critico (<= 10 unidades)</h1>
+                    <p>Gerado em: ${escaparHtml(agora)}</p>
+                    ${secoesCategoria}
+                    <div class="resumo">Total de itens criticos: ${produtosCriticos.length}</div>
+                </body>
+                </html>
+            `;
+
+            const iframe = document.createElement('iframe');
+            iframe.style.cssText = 'position:fixed;width:0;height:0;border:0;display:none;';
+            document.body.appendChild(iframe);
+            iframe.contentDocument.open();
+            iframe.contentDocument.write(conteudo);
+            iframe.contentDocument.close();
+            setTimeout(() => {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
+                setTimeout(() => document.body.removeChild(iframe), 1000);
+            }, 300);
         }
 
         // Adicionar ao Carrinho
@@ -3182,7 +3572,7 @@
                     mostrarAlerta('Selecione um associado para fiado', 'erro');
                     return;
                 }
-                const assoc = associados.find(a=>a.nome===selName);
+                const assoc = associados.find(a => (a.nome || '').toUpperCase() === selName.toUpperCase());
                 if (!assoc || assoc.senha !== senhaInput) {
                     mostrarAlerta('Senha do associado inválida', 'erro');
                     return;
@@ -3277,7 +3667,6 @@
             atualizarListaProdutos();
             atualizarEstoqueGestao();
             atualizarRelatorio();
-            atualizarRelatorioDiario();
             atualizarEntradaDinheiro();
             atualizarClientesFiados();
             mostrarVendasParaEdicao();
@@ -3306,6 +3695,7 @@
             document.getElementById('produtoEstoque').value = '';
             document.getElementById('produtoCodigoBarras').value = '';
             document.getElementById('produtoMarca').value = '';
+            document.getElementById('produtoCasco').value = '4';
             atualizarPreviewImagemProduto('', 'Use "Buscar na Internet" para escolher uma imagem');
             const opcoesImagem = document.getElementById('produtoImagemOpcoes');
             if (opcoesImagem) opcoesImagem.innerHTML = '';
@@ -3334,6 +3724,7 @@
             document.getElementById('produtoEstoque').value = produto.estoque;
             document.getElementById('produtoCodigoBarras').value = produto.codigoBarras || '';
             document.getElementById('produtoMarca').value = produto.marca || '';
+            document.getElementById('produtoCasco').value = produto.valorCasco || 0;
             atualizarPreviewImagemProduto(produto.imagemUrl || '', produto.imagemUrl ? 'Imagem atual do produto' : 'Use "Buscar na Internet" para escolher uma imagem');
             const opcoesImagem = document.getElementById('produtoImagemOpcoes');
             if (opcoesImagem) opcoesImagem.innerHTML = '';
@@ -3348,14 +3739,16 @@
         async function salvarProduto() {
             if(!usuarioEhAdmin()) return bloquearAcaoAdmin();
             const nome = document.getElementById('produtoNome').value.trim();
-            const preco = parseFloat(document.getElementById('produtoPreco').value);
-            const estoque = parseInt(document.getElementById('produtoEstoque').value);
+            const preco = Number(document.getElementById('produtoPreco').value);
+            const estoque = Number(document.getElementById('produtoEstoque').value);
             const codigoBarras = document.getElementById('produtoCodigoBarras').value.trim();
             const marca = String(document.getElementById('produtoMarca').value || '').trim();
+            const valorCascoTexto = String(document.getElementById('produtoCasco').value || '').trim();
+            const valorCasco = valorCascoTexto === '' ? 4 : (parseFloat(valorCascoTexto) || 0);
             let imagemUrl = document.getElementById('produtoImagemUrl').value.trim();
             const categoria = document.getElementById('produtoCategoria').value;
 
-            if (!nome || !preco || preco < 0 || estoque < 0) {
+            if (!nome || !Number.isFinite(preco) || preco < 0 || !Number.isInteger(estoque) || estoque < 0) {
                 mostrarAlerta('Preencha todos os campos corretamente', 'erro');
                 return;
             }
@@ -3378,6 +3771,7 @@
                 produtoEmEdicao.marca = marca || undefined;
                 produtoEmEdicao.imagemUrl = imagemUrl || undefined;
                 produtoEmEdicao.categoria = categoria;
+                produtoEmEdicao.valorCasco = valorCasco > 0 ? valorCasco : undefined;
                 mostrarAlerta('Produto atualizado com sucesso', 'sucesso');
             } else {
                 const novoProduto = {
@@ -3388,7 +3782,8 @@
                     codigoBarras: codigoBarras || undefined,
                     marca: marca || undefined,
                     imagemUrl: imagemUrl || undefined,
-                    categoria: categoria
+                    categoria: categoria,
+                    valorCasco: valorCasco > 0 ? valorCasco : undefined
                 };
                 produtos.push(novoProduto);
                 mostrarAlerta('Produto adicionado com sucesso', 'sucesso');
@@ -3434,9 +3829,9 @@
 
         function salvarEstoque() {
             if(!usuarioEhAdmin()) return bloquearAcaoAdmin();
-            const novaQuantidade = parseInt(document.getElementById('estoqueQuantidade').value);
+            const novaQuantidade = Number(document.getElementById('estoqueQuantidade').value);
 
-            if (novaQuantidade < 0) {
+            if (!Number.isInteger(novaQuantidade) || novaQuantidade < 0) {
                 mostrarAlerta('Quantidade não pode ser negativa', 'erro');
                 return;
             }
@@ -3584,57 +3979,6 @@
             relatorio.innerHTML = html;
         }
 
-        function obterDataVenda(venda) {
-            return String(venda && venda.data ? venda.data : '').split(',')[0].trim();
-        }
-
-        function atualizarRelatorioDiario() {
-            const relatorioDiario = document.getElementById('relatorioDiarioLista');
-            if (!relatorioDiario) return;
-
-            const hoje = new Date().toLocaleDateString('pt-BR');
-            const vendasHoje = vendas.filter((venda) => obterDataVenda(venda) === hoje);
-
-            if (vendasHoje.length === 0) {
-                relatorioDiario.innerHTML = `<div class="carrinho-vazio"><p>Nenhuma venda registrada hoje (${hoje})</p></div>`;
-                return;
-            }
-
-            const totalHoje = vendasHoje.reduce((acc, venda) => acc + Number(venda.total || 0), 0);
-            const vendasFiado = vendasHoje.filter((venda) => venda.fiado).length;
-            const vendasPagas = vendasHoje.length - vendasFiado;
-
-            let html = `
-                <div style="margin-bottom: 12px; display: flex; justify-content: flex-end;">
-                    <span style="background:#ecfeff;border:1px solid #a5f3fc;color:#155e75;padding:4px 10px;border-radius:999px;font-size:0.78em;font-weight:700;">
-                        <i class="bi bi-calendar-day" aria-hidden="true"></i> ${hoje} | ${vendasHoje.length} venda(s) | Pago: ${vendasPagas} | Fiado: ${vendasFiado} | Total: R$ ${totalHoje.toFixed(2)}
-                    </span>
-                </div>
-            `;
-
-            vendasHoje.forEach((venda) => {
-                const status = venda.fiado ? 'FIADO' : 'PAGO';
-                const statusStyle = venda.fiado ? 'color:#dc2626;font-weight:700;' : 'color:#16a34a;font-weight:700;';
-                const itensResumo = (venda.itens || [])
-                    .map((item) => `${item.quantidade}x ${item.nome}`)
-                    .join(' | ');
-
-                html += `
-                    <div class="estoque-item">
-                        <div>
-                            <strong>#${venda.id} - ${venda.cliente || 'Cliente não informado'}</strong>
-                            <div class="associado-meta"><i class="bi bi-person-badge" aria-hidden="true"></i> Vendedor: ${venda.vendedor || 'Nao informado'}</div>
-                            <div class="associado-meta">${venda.data} | Pagamento: ${venda.metodoPagamento || '-'} | <span style="${statusStyle}">${status}</span></div>
-                            <div class="associado-meta">${itensResumo || 'Sem itens'}</div>
-                            <div class="associado-meta"><strong>Total: R$ ${Number(venda.total || 0).toFixed(2)}</strong></div>
-                        </div>
-                    </div>
-                `;
-            });
-
-            relatorioDiario.innerHTML = html;
-        }
-
         // Atualizar Entrada de Dinheiro
         function atualizarEntradaDinheiro() {
             const painel = document.getElementById('entradaDinheiro');
@@ -3697,10 +4041,75 @@
         }
 
         // Atualizar Clientes Fiados
+        function filtrarClientesFiados() {
+            atualizarClientesFiados();
+        }
+
+        function extrairMesAnoRecebimentos(valorData) {
+            const dataSemHora = String(valorData || '').split(',')[0].trim();
+            const partes = dataSemHora.split('/');
+            if (partes.length !== 3) {
+                return { chave: '0000-00', label: 'SEM DATA' };
+            }
+            const mes = String(partes[1] || '').padStart(2, '0');
+            const ano = String(partes[2] || '0000');
+            return {
+                chave: `${ano}-${mes}`,
+                label: `${mes}/${ano}`
+            };
+        }
+
+        function renderizarDetalheConsumoNoPainel(cliente, vendasDoCliente) {
+            const painelDetalhe = document.getElementById('recebimentosDetalheConteudo');
+            if (!painelDetalhe) return;
+
+            if (!Array.isArray(vendasDoCliente) || vendasDoCliente.length === 0) {
+                painelDetalhe.innerHTML = '<div class="associado-empty">Nenhum consumo fiado encontrado para este cliente</div>';
+                return;
+            }
+
+            const totalGeral = vendasDoCliente.reduce((acc, venda) => acc + Number(venda.total || 0), 0);
+            const vendasOrdenadas = [...vendasDoCliente].sort((a, b) => {
+                const dataA = String(a.data || '');
+                const dataB = String(b.data || '');
+                return dataB.localeCompare(dataA);
+            });
+
+            let html = '<div class="associado-meta" style="margin-bottom: 10px; font-size: 0.9em;"><strong>Total em aberto: R$ ' + totalGeral.toFixed(2) + '</strong></div>';
+
+            vendasOrdenadas.forEach((venda, idx) => {
+                const itensHtml = Array.isArray(venda.itens) && venda.itens.length > 0
+                    ? venda.itens.map((item) => `<div style="font-size:0.84em; color:#5d4037;">${item.quantidade}x ${item.nome}</div>`).join('')
+                    : '<div style="font-size:0.84em; color:#5d4037;">Nenhum item registrado</div>';
+
+                html += `
+                    <div class="relatorio-item" style="border-left-color: #0f766e; background: linear-gradient(135deg, #effcf7 0%, #dff7ef 100%); padding: 12px;">
+                        <div class="relatorio-item-header">
+                            <span style="color: #0f5132; font-size: 0.92em;"><i class="bi bi-clock-history" aria-hidden="true"></i> Compra ${idx + 1}</span>
+                            <span style="color: #065f46; font-weight: 800; font-size: 0.92em;">R$ ${Number(venda.total || 0).toFixed(2)}</span>
+                        </div>
+                        <div class="relatorio-item-detalhes" style="color: #115e59; font-size: 0.88em;">
+                            <strong>Data/Hora:</strong> ${venda.data || '-'}
+                        </div>
+                        <details style="margin-top:6px;">
+                            <summary style="cursor:pointer; color:#7d6608; font-weight:700; font-size:0.86em;">Ver o que ja consumiu nesta compra</summary>
+                            <div style="margin-top:6px; padding:7px 8px; border:1px solid #f3d7a2; border-radius:7px; background:#fff8e6;">
+                                ${itensHtml}
+                            </div>
+                        </details>
+                    </div>
+                `;
+            });
+
+            painelDetalhe.innerHTML = html;
+        }
+
         function atualizarClientesFiados() {
             const painel = document.getElementById('clientesFiados');
             const vendaFiada = vendas.filter(v => v.fiado);
+            const filtroEl = document.getElementById('filtroClienteFiado');
             const filtroMesEl = document.getElementById('filtroMesRecebimentos');
+            const termo = filtroEl ? filtroEl.value.trim().toLowerCase() : '';
 
             if (vendaFiada.length === 0) {
                 if (filtroMesEl) {
@@ -3709,34 +4118,20 @@
                     delete filtroMesEl.dataset.inicializado;
                 }
                 painel.innerHTML = '<div class="carrinho-vazio"><p>Nenhum cliente com débito</p></div>';
+                devedorDetalheSelecionado = null;
                 return;
             }
 
-            const extrairMesAno = (valorData) => {
-                const dataSemHora = String(valorData || '').split(',')[0].trim();
-                const partes = dataSemHora.split('/');
-                if (partes.length !== 3) {
-                    return { chave: '0000-00', label: 'SEM DATA' };
-                }
-                const mes = String(partes[1] || '').padStart(2, '0');
-                const ano = String(partes[2] || '0000');
-                return {
-                    chave: `${ano}-${mes}`,
-                    label: `${mes}/${ano}`
-                };
-            };
-
-            const mesesDisponiveis = Array.from(new Set(vendaFiada.map((venda) => extrairMesAno(venda.data).chave))).sort((a, b) => b.localeCompare(a));
+            const mesesDisponiveis = Array.from(new Set(vendaFiada.map((venda) => extrairMesAnoRecebimentos(venda.data).chave))).sort((a, b) => b.localeCompare(a));
             const mesAtual = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
             let mesSelecionado = 'todos';
             if (filtroMesEl) {
                 const valorAtual = filtroMesEl.value || 'todos';
                 filtroMesEl.innerHTML = '<option value="todos">Todos os meses</option>';
                 mesesDisponiveis.forEach((mesKey) => {
-                    const mesInfo = extrairMesAno(`${mesKey.slice(5, 7)}/01/${mesKey.slice(0, 4)}`);
                     const option = document.createElement('option');
                     option.value = mesKey;
-                    option.textContent = mesInfo.label;
+                    option.textContent = `${mesKey.slice(5, 7)}/${mesKey.slice(0, 4)}`;
                     filtroMesEl.appendChild(option);
                 });
                 const primeiraCarga = filtroMesEl.dataset.inicializado !== 'true';
@@ -3753,48 +4148,48 @@
                 mesSelecionado = filtroMesEl.value;
             }
 
-            const vendaFiadaFiltrada = mesSelecionado === 'todos'
-                ? vendaFiada
-                : vendaFiada.filter((venda) => extrairMesAno(venda.data).chave === mesSelecionado);
+            const vendasFiltradas = vendaFiada.filter((venda) => {
+                const mesInfo = extrairMesAnoRecebimentos(venda.data);
+                const filtroMesOk = mesSelecionado === 'todos' || mesInfo.chave === mesSelecionado;
+                if (!filtroMesOk) return false;
 
-            if (vendaFiadaFiltrada.length === 0) {
-                painel.innerHTML = '<div class="associado-empty">Nenhum devedor encontrado para o mês selecionado</div>';
+                if (!termo) return true;
+
+                const cliente = venda.cliente;
+                const clienteExibicao = formatarClienteComGraduacao(cliente);
+                const nomeBase = String(cliente || '').replace(/\s*\([^)]*\)\s*$/, '').trim().toUpperCase();
+                const associado = associados.find(a => String(a.nome || '').trim().toUpperCase() === nomeBase);
+                const posto = associado ? String(associado.posto || '') : '';
+                const telefone = associado ? String(associado.telefone || '') : '';
+                const textoBusca = `${cliente} ${clienteExibicao} ${posto} ${telefone}`.toLowerCase();
+
+                return textoBusca.includes(termo);
+            });
+
+            if (vendasFiltradas.length === 0) {
+                painel.innerHTML = '<div class="associado-empty">Nenhum devedor encontrado para os filtros informados</div>';
+                devedorDetalheSelecionado = null;
                 return;
             }
 
             const gruposMes = {};
-            vendaFiadaFiltrada.forEach((venda) => {
-                const mesInfo = extrairMesAno(venda.data);
+            vendasFiltradas.forEach((venda) => {
+                const mesInfo = extrairMesAnoRecebimentos(venda.data);
                 if (!gruposMes[mesInfo.chave]) {
-                    gruposMes[mesInfo.chave] = {
-                        label: mesInfo.label,
-                        total: 0,
-                        clientes: {}
-                    };
+                    gruposMes[mesInfo.chave] = { label: mesInfo.label, total: 0, clientes: {} };
                 }
-
                 if (!gruposMes[mesInfo.chave].clientes[venda.cliente]) {
-                    gruposMes[mesInfo.chave].clientes[venda.cliente] = {
-                        vendas: [],
-                        totalDevendo: 0
-                    };
+                    gruposMes[mesInfo.chave].clientes[venda.cliente] = { vendas: [], totalDevendo: 0 };
                 }
-
                 gruposMes[mesInfo.chave].clientes[venda.cliente].vendas.push(venda);
                 gruposMes[mesInfo.chave].clientes[venda.cliente].totalDevendo += venda.total;
                 gruposMes[mesInfo.chave].total += venda.total;
             });
 
             const mesesOrdenados = Object.keys(gruposMes).sort((a, b) => b.localeCompare(a));
+            const totalGeral = mesesOrdenados.reduce((acc, mesKey) => acc + gruposMes[mesKey].total, 0);
 
-            let totalGeral = 0;
-            mesesOrdenados.forEach((mesKey) => {
-                totalGeral += gruposMes[mesKey].total;
-            });
-
-            let html = '';
-            
-            html += `
+            let listaHtml = `
                 <div style="margin-bottom: 12px; display: flex; justify-content: flex-end;">
                     <span style="background:#fff5f5;border:1px solid #f5c2c7;color:#a61e2b;padding:4px 10px;border-radius:999px;font-size:0.78em;font-weight:700;">
                         <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i> Total em aberto: R$ ${totalGeral.toFixed(2)}
@@ -3804,8 +4199,7 @@
 
             mesesOrdenados.forEach((mesKey) => {
                 const grupo = gruposMes[mesKey];
-
-                html += `
+                listaHtml += `
                     <div class="estoque-item" style="background:#f8fafc;border-left:4px solid #0f766e; margin-top: 8px;">
                         <div>
                             <strong><i class="bi bi-calendar3" aria-hidden="true"></i> Mês de referência: ${grupo.label}</strong>
@@ -3816,16 +4210,23 @@
 
                 Object.entries(grupo.clientes).forEach(([cliente, dados]) => {
                     const clienteSeguro = JSON.stringify(cliente);
+                    const clienteExibicao = formatarClienteComGraduacao(cliente);
+                    const ativo = devedorDetalheSelecionado === cliente ? 'border-color:#0f766e; box-shadow:0 0 0 2px rgba(15,118,110,0.18);' : '';
                     const botaoReceber = usuarioEhAdmin()
-                        ? `<button class="btn btn-success" onclick='marcarComoRecebido(${clienteSeguro})' style="margin-top: 8px; width:auto; padding:8px 12px; font-size: 0.9em;"><i class="bi bi-check2-circle" aria-hidden="true"></i> Marcar como Recebido</button>`
+                        ? `<button class="btn btn-success devedor-action-btn" onclick='marcarComoRecebido(${clienteSeguro})' title="Marcar como recebido" aria-label="Marcar como recebido"><i class="bi bi-check2-circle" aria-hidden="true"></i></button>`
                         : '';
 
-                    html += `
-                        <div class="estoque-item">
-                            <div>
-                                <strong><i class="bi bi-person-circle" aria-hidden="true"></i> ${cliente}</strong>
-                                <div class="associado-meta">${dados.vendas.length} compra(s) fiada(s) em ${grupo.label}</div>
-                                <div class="associado-meta"><strong>R$ ${dados.totalDevendo.toFixed(2)}</strong></div>
+                    listaHtml += `
+                        <div class="estoque-item devedor-item" style="${ativo}">
+                            <div class="relatorio-item-header">
+                                <span style="font-size: 1.05em; color: #c0392b;"><i class="bi bi-person-circle" aria-hidden="true"></i> ${clienteExibicao}</span>
+                                <span style="font-size: 1.05em; color: #a93226; font-weight: 800;">R$ ${dados.totalDevendo.toFixed(2)}</span>
+                            </div>
+                            <div class="relatorio-item-detalhes" style="color: #7b241c;">
+                                <strong>${dados.vendas.length} compra(s) fiada(s) em ${grupo.label}</strong>
+                            </div>
+                            <div class="devedor-actions">
+                                <button class="btn btn-secondary devedor-action-btn" onclick='verConsumoDevedor(${clienteSeguro})' title="Ver consumo (data/hora/total)" aria-label="Ver consumo"><i class="bi bi-eye" aria-hidden="true"></i></button>
                                 ${botaoReceber}
                             </div>
                         </div>
@@ -3833,7 +4234,121 @@
                 });
             });
 
-            painel.innerHTML = html;
+            painel.innerHTML = `
+                <div style="display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,0.95fr);gap:12px;align-items:start;">
+                    <div>${listaHtml}</div>
+                    <div id="recebimentosDetalhePainel" class="estoque-item" style="padding:12px;">
+                        <div class="relatorio-item-header" style="margin-bottom:8px;">
+                            <span><i class="bi bi-journal-text" aria-hidden="true"></i> Consumo do devedor</span>
+                        </div>
+                        <div id="recebimentosDetalheDevedorAtual" class="associado-meta" style="margin-bottom:8px; font-size:0.9em;">Selecione um devedor para visualizar o consumo.</div>
+                        <div id="recebimentosDetalheConteudo" class="associado-meta" style="font-size:0.9em;">Clique no ícone de olho na lista para abrir o consumo.</div>
+                    </div>
+                </div>
+            `;
+
+            const detalheDevedorEl = document.getElementById('recebimentosDetalheDevedorAtual');
+
+            if (devedorDetalheSelecionado) {
+                if (detalheDevedorEl) {
+                    detalheDevedorEl.textContent = `Devedor selecionado: ${formatarClienteComGraduacao(devedorDetalheSelecionado)}`;
+                }
+            }
+
+            if (devedorDetalheSelecionado) {
+                const vendasDetalhe = vendasFiltradas.filter((v) => v.cliente === devedorDetalheSelecionado);
+                if (vendasDetalhe.length > 0) {
+                    renderizarDetalheConsumoNoPainel(devedorDetalheSelecionado, vendasDetalhe);
+                } else {
+                    devedorDetalheSelecionado = null;
+                }
+            }
+        }
+
+        // Exportar Planilha de Devedores (CSV)
+        function exportarPlanilhaDevedores() {
+            if(!usuarioEhAdmin()) return bloquearAcaoAdmin();
+            const filtroMesEl = document.getElementById('filtroMesRecebimentos');
+            const mesSelecionado = filtroMesEl ? (filtroMesEl.value || 'todos') : 'todos';
+            const vendasFiadas = vendas.filter((v) => {
+                if (!v.fiado) return false;
+                if (mesSelecionado === 'todos') return true;
+                return extrairMesAnoRecebimentos(v.data).chave === mesSelecionado;
+            });
+
+            if (vendasFiadas.length === 0) {
+                mostrarAlerta('Nenhum devedor para exportar', 'erro');
+                return;
+            }
+
+            const devedores = {};
+
+            vendasFiadas.forEach(venda => {
+                const nomeBase = String(venda.cliente || '').replace(/\s*\([^)]*\)\s*$/, '').trim().toUpperCase();
+                const associado = associados.find((a) => String(a.nome || '').trim().toUpperCase() === nomeBase);
+                const graduacao = String(associado && associado.posto ? associado.posto : '').trim().toUpperCase();
+                const vinculo = String(associado && associado.vinculo ? associado.vinculo : 'NAO').trim().toUpperCase() || 'NAO';
+                const temVinculo = vinculo !== 'NAO' && vinculo !== '';
+                const mensalidade = temVinculo
+                    ? 0
+                    : (graduacao === 'CIVIL' ? 50 : 30);
+
+                if (!devedores[venda.cliente]) {
+                    devedores[venda.cliente] = {
+                        cliente: venda.cliente,
+                        graduacao: graduacao || 'NAO INFORMADA',
+                        vinculo,
+                        mensalidade,
+                        totalDevendo: 0
+                    };
+                }
+
+                devedores[venda.cliente].totalDevendo += venda.total;
+            });
+
+            const escaparCsv = (valor) => {
+                const texto = String(valor ?? '');
+                return `"${texto.replace(/"/g, '""')}"`;
+            };
+
+            const linhas = [];
+            linhas.push([
+                'Posicao',
+                'Associado',
+                'Graduacao',
+                'Vinculo',
+                'Mensalidade',
+                'Total_Devendo',
+                'Total_A_Receber'
+            ].join(';'));
+
+            Object.values(devedores)
+                .sort((a, b) => b.totalDevendo - a.totalDevendo)
+                .forEach((item, index) => {
+                    const clienteExibicao = formatarClienteComGraduacao(item.cliente);
+                    const totalReceber = Number(item.totalDevendo || 0) + Number(item.mensalidade || 0);
+                    linhas.push([
+                        index + 1,
+                        escaparCsv(clienteExibicao),
+                        escaparCsv(item.graduacao || 'NAO INFORMADA'),
+                        escaparCsv(item.vinculo || 'NAO'),
+                        Number(item.mensalidade || 0).toFixed(2).replace('.', ','),
+                        item.totalDevendo.toFixed(2).replace('.', ','),
+                        totalReceber.toFixed(2).replace('.', ',')
+                    ].join(';'));
+                });
+
+            const csvConteudo = '\uFEFF' + linhas.join('\n');
+            const blob = new Blob([csvConteudo], { type: 'text/csv;charset=utf-8;' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const sufixoMes = mesSelecionado !== 'todos' ? `_${mesSelecionado}` : '';
+            a.download = `recebimentos${sufixoMes}_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+
+            mostrarAlerta('Planilha de recebimentos gerada com sucesso', 'sucesso');
         }
 
         // Marcar Como Recebido
@@ -3841,9 +4356,10 @@
             if(!usuarioEhAdmin()) return bloquearAcaoAdmin();
             clienteEmRecebimento = cliente;
             const vendasDoCliente = vendas.filter(v => v.cliente === cliente && v.fiado);
+            const clienteExibicao = formatarClienteComGraduacao(cliente);
             
             let totalGeral = 0;
-            let html = `<h4 style="color: #333; margin-bottom: 15px;">Cliente: <strong>${cliente}</strong></h4>`;
+            let html = `<h4 style="color: #333; margin-bottom: 15px;">Cliente: <strong>${clienteExibicao}</strong></h4>`;
             html += `<div style="max-height: 350px; overflow-y: auto; margin-bottom: 15px;">`;
             
             vendasDoCliente.forEach((venda, idx) => {
@@ -3900,7 +4416,7 @@
                 </div>
             `;
             
-            document.getElementById('modalRecebimentoTitulo').textContent = `Recebimento - ${cliente}`;
+            document.getElementById('modalRecebimentoTitulo').textContent = `Recebimento - ${clienteExibicao}`;
             document.getElementById('modalRecebimentoConteudo').innerHTML = html;
             document.getElementById('modalRecebimento').classList.add('ativo');
             atualizarTotalRecebimento();
@@ -3956,6 +4472,7 @@
             }
 
             salvarVendas();
+            agendarSalvarServidor();
             atualizarClientesFiados();
             const temVendasRestantes = vendas.some(v => v.cliente === clienteEmRecebimento && v.fiado);
             if (temVendasRestantes) {
@@ -3998,7 +4515,6 @@
             salvarVendas();
             atualizarClientesFiados();
             atualizarRelatorio();
-            atualizarRelatorioDiario();
             fecharModalRecebimento();
             mostrarAlerta(`Pagamento(s) de ${clienteEmRecebimento} recebido(s) com sucesso`, 'sucesso');
         }
@@ -4009,33 +4525,128 @@
             clienteEmRecebimento = null;
         }
 
-        // Exportar Dados
-        function exportarDados() {
-            let texto = 'RELATÓRIO DE VENDAS\n';
-            texto += '==================\n\n';
-
-            vendas.forEach(venda => {
-                texto += `Data: ${venda.data}\n`;
-                texto += 'Itens:\n';
-                venda.itens.forEach(item => {
-                    texto += `  ${item.quantidade}× ${item.nome} @ R$ ${item.preco.toFixed(2)} = R$ ${(item.quantidade * item.preco).toFixed(2)}\n`;
-                });
-                texto += `Subtotal: R$ ${venda.subtotal.toFixed(2)}\n`;
-                if (venda.desconto > 0) {
-                    texto += `Desconto: ${venda.desconto}% (-R$ ${venda.valorDesconto.toFixed(2)})\n`;
-                }
-                texto += `TOTAL: R$ ${venda.total.toFixed(2)}\n`;
-                texto += '---\n\n';
+        // Ver Consumo por Dia do Devedor
+        function verConsumoDevedor(cliente) {
+            const filtroMesEl = document.getElementById('filtroMesRecebimentos');
+            const mesSelecionado = filtroMesEl ? (filtroMesEl.value || 'todos') : 'todos';
+            const vendasDoCliente = vendas.filter((venda) => {
+                if (!venda.fiado || venda.cliente !== cliente) return false;
+                if (mesSelecionado === 'todos') return true;
+                return extrairMesAnoRecebimentos(venda.data).chave === mesSelecionado;
             });
 
-            const blob = new Blob([texto], { type: 'text/plain' });
+            if (vendasDoCliente.length === 0) {
+                mostrarAlerta('Nenhum consumo fiado encontrado para este cliente no período selecionado', 'erro');
+                return;
+            }
+
+            devedorDetalheSelecionado = cliente;
+            atualizarClientesFiados();
+        }
+
+        function fecharModalConsumoDevedor() {
+            document.getElementById('modalConsumoDevedor').classList.remove('ativo');
+        }
+
+        // Exportar Dados
+        function exportarDados() {
+            const filtroNomeBruto = (document.getElementById('filtroRelatorioNome')?.value || '').trim();
+            const filtroNome = filtroNomeBruto.toLowerCase();
+            const filtroStatus = document.getElementById('filtroRelatorioStatus')?.value || 'todos';
+            const filtroDataInicio = document.getElementById('filtroRelatorioDataInicio')?.value || '';
+            const filtroDataFim = document.getElementById('filtroRelatorioDataFim')?.value || '';
+
+            const vendasFiltradas = vendas.filter((venda) => {
+                const nomeCliente = String(venda.cliente || '').toLowerCase();
+                const dataISO = obterDataVendaISO(venda);
+
+                const filtroNomeOk = !filtroNome || nomeCliente.includes(filtroNome);
+                const filtroStatusOk = filtroStatus === 'todos' || (filtroStatus === 'pago' && !venda.fiado) || (filtroStatus === 'fiado' && venda.fiado);
+                const filtroDataInicioOk = !filtroDataInicio || (dataISO && dataISO >= filtroDataInicio);
+                const filtroDataFimOk = !filtroDataFim || (dataISO && dataISO <= filtroDataFim);
+
+                return filtroNomeOk && filtroStatusOk && filtroDataInicioOk && filtroDataFimOk;
+            });
+
+            if (vendasFiltradas.length === 0) {
+                mostrarAlerta('Nenhuma venda encontrada para exportar com os filtros informados', 'erro');
+                return;
+            }
+
+            const vendasPorCliente = {};
+            vendasFiltradas.forEach((venda) => {
+                const cliente = String(venda.cliente || 'Cliente nao identificado').trim() || 'Cliente nao identificado';
+                if (!vendasPorCliente[cliente]) {
+                    vendasPorCliente[cliente] = [];
+                }
+                vendasPorCliente[cliente].push(venda);
+            });
+
+            const clientesOrdenados = Object.keys(vendasPorCliente).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+            const dataGeracao = new Date().toLocaleString('pt-BR');
+            const periodoTexto = `${filtroDataInicio || 'inicio'} a ${filtroDataFim || 'hoje'}`;
+            const statusTexto = filtroStatus === 'todos' ? 'Todos' : (filtroStatus === 'fiado' ? 'Fiado' : 'Pago');
+
+            let texto = 'NOTA DE COMPRA - EXPORTACAO\n';
+            texto += '============================\n';
+            texto += `Gerado em: ${dataGeracao}\n`;
+            texto += `Filtro nome: ${filtroNomeBruto || 'Todos'}\n`;
+            texto += `Filtro status: ${statusTexto}\n`;
+            texto += `Filtro periodo: ${periodoTexto}\n`;
+            texto += `Quantidade de vendas: ${vendasFiltradas.length}\n\n`;
+
+            clientesOrdenados.forEach((cliente, idxCliente) => {
+                const vendasCliente = vendasPorCliente[cliente];
+                const totalCliente = vendasCliente.reduce((acc, venda) => acc + Number(venda.total || 0), 0);
+
+                texto += `CLIENTE: ${cliente}\n`;
+                texto += `Compras no filtro: ${vendasCliente.length}\n`;
+                texto += `Total do cliente: R$ ${totalCliente.toFixed(2)}\n`;
+                texto += '----------------------------------------\n';
+
+                vendasCliente.forEach((venda, indexVenda) => {
+                    texto += `Compra ${indexVenda + 1}\n`;
+                    texto += `Data: ${venda.data || 'Nao informada'}\n`;
+                    texto += `Pagamento: ${venda.fiado ? 'Fiado' : (venda.metodoPagamento || 'Nao informado')}\n`;
+                    texto += 'Itens:\n';
+
+                    (Array.isArray(venda.itens) ? venda.itens : []).forEach((item) => {
+                        const quantidade = Number(item.quantidade || 0);
+                        const preco = Number(item.preco || 0);
+                        const totalItem = quantidade * preco;
+                        texto += `  ${quantidade}x ${item.nome} @ R$ ${preco.toFixed(2)} = R$ ${totalItem.toFixed(2)}\n`;
+                    });
+
+                    texto += `Subtotal: R$ ${Number(venda.subtotal || 0).toFixed(2)}\n`;
+                    if (Number(venda.desconto || 0) > 0) {
+                        texto += `Desconto: ${Number(venda.desconto || 0).toFixed(2)}% (-R$ ${Number(venda.valorDesconto || 0).toFixed(2)})\n`;
+                    }
+                    texto += `TOTAL DA COMPRA: R$ ${Number(venda.total || 0).toFixed(2)}\n`;
+                    texto += '\n';
+                });
+
+                if (idxCliente < clientesOrdenados.length - 1) {
+                    texto += '========================================\n\n';
+                }
+            });
+
+            const totalGeral = vendasFiltradas.reduce((acc, venda) => acc + Number(venda.total || 0), 0);
+            texto += `\nTOTAL GERAL NO FILTRO: R$ ${totalGeral.toFixed(2)}\n`;
+
+            const blob = new Blob([texto], { type: 'text/plain;charset=utf-8' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `relatorio_vendas_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.txt`;
+            const nomeArquivoCliente = (filtroNomeBruto || 'todos_clientes')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-zA-Z0-9]+/g, '_')
+                .replace(/^_+|_+$/g, '')
+                .toLowerCase() || 'todos_clientes';
+            a.download = `nota_compra_${nomeArquivoCliente}_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.txt`;
             a.click();
             window.URL.revokeObjectURL(url);
-            mostrarAlerta('Relatório exportado com sucesso', 'sucesso');
+            mostrarAlerta('Nota de compra exportada com sucesso', 'sucesso');
         }
 
         function exportarBackupCompleto() {
@@ -4130,7 +4741,6 @@
                     atualizarListaProdutos();
                     atualizarEstoqueGestao();
                     atualizarRelatorio();
-                    atualizarRelatorioDiario();
                     atualizarEntradaDinheiro();
                     atualizarClientesFiados();
                     atualizarListaAssociados();
@@ -4164,7 +4774,6 @@
                     localStorage.setItem('vendaCounter', '1');
                     salvarVendas();
                     atualizarRelatorio();
-                    atualizarRelatorioDiario();
                     atualizarClientesFiados();
                     mostrarVendasParaEdicao();
                     const info = document.getElementById('lastSaleInfo');
@@ -4201,6 +4810,7 @@
             const modal1 = document.getElementById('modalProduto');
             const modal2 = document.getElementById('modalEstoque');
             const modal3 = document.getElementById('modalRecebimento');
+            const modal4 = document.getElementById('modalConsumoDevedor');
 
             if (event.target == modal1) {
                 fecharModalProduto();
@@ -4210,6 +4820,9 @@
             }
             if (event.target == modal3) {
                 fecharModalRecebimento();
+            }
+            if (event.target == modal4) {
+                fecharModalConsumoDevedor();
             }
 
             // fechar dropdown de associados se clicar fora
@@ -4222,3 +4835,4 @@
     </script>
 </body>
 </html>
+
