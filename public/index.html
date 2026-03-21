@@ -1443,78 +1443,91 @@
                                     <div id="cardapioImagensContainer" style="display:none; margin-top:14px;"></div>
                 </div>
 
-                <!-- Aba de Editar Venda -->
-                        <script>
-                        let cardapioImagensVisivel = false;
-                        function alternarCardapioImagens() {
-                            cardapioImagensVisivel = !cardapioImagensVisivel;
-                            const botao = document.getElementById('btnCardapioImagens');
-                            const botaoImprimir = document.getElementById('btnImprimirCardapio');
-                            const container = document.getElementById('cardapioImagensContainer');
-                            if (container) {
-                                container.style.display = cardapioImagensVisivel ? 'block' : 'none';
-                                botaoImprimir.style.display = cardapioImagensVisivel ? 'inline-block' : 'none';
-                                if (cardapioImagensVisivel) {
-                                    botao.textContent = 'Ocultar Cardápio com Imagens';
-                                    carregarCardapioNoIndex();
-                                } else {
-                                    botao.textContent = 'Mostrar Cardápio com Imagens';
-                                }
-                            }
-                        }
-                        async function carregarCardapioNoIndex() {
-                            const container = document.getElementById('cardapioImagensContainer');
-                            if (!container) return;
-                            container.innerHTML = 'Carregando cardápio...';
-                            try {
-                                const resp = await fetch('/products');
-                                if (!resp.ok) throw new Error('Erro ao buscar produtos');
-                                const produtos = await resp.json();
-                                const categorias = {};
-                                produtos.forEach(prod => {
-                                    if (!categorias[prod.categoria]) categorias[prod.categoria] = [];
-                                    categorias[prod.categoria].push(prod);
-                                });
-                                let html = '';
-                                Object.keys(categorias).forEach(cat => {
-                                    html += `<div class="categoria"><h2>${cat}</h2><div class="produtos-grid">`;
-                                    categorias[cat].forEach(prod => {
-                                        const img = prod.imagemUrl || prod.imagem || 'https://via.placeholder.com/150';
-                                        html += `<div class="produto-card"><img src="${img}" alt="${prod.nome}"><div class="produto-nome">${prod.nome}</div><div class="produto-preco">R$ ${Number(prod.preco).toFixed(2)}</div></div>`;
-                                    });
-                                    html += '</div></div>';
-                                });
-                                container.innerHTML = `<div id='cardapioImprimirArea'><style>
-                                .categoria { margin-top: 30px; }
-                                .categoria h2 { border-bottom: 1px solid #ccc; padding-bottom: 5px; }
-                                .produtos-grid { display: flex; flex-wrap: wrap; gap: 20px; }
-                                .produto-card { border: 1px solid #ddd; border-radius: 8px; padding: 10px; width: 200px; box-shadow: 0 2px 6px #eee; background: #fff; display: flex; flex-direction: column; align-items: center; }
-                                .produto-card img { max-width: 100%; max-height: 120px; object-fit: contain; margin-bottom: 10px; }
-                                .produto-nome { font-weight: bold; margin-bottom: 5px; }
-                                .produto-preco { color: #388e3c; font-size: 1.1em; }
-                                @media print { .print-btn { display: none; } body { margin: 0; } }
-                                </style>` + html + '</div>';
-                            } catch (e) {
-                                container.innerHTML = 'Erro ao carregar cardápio.';
-                            }
-                        }
+                </div>
 
-                        function imprimirCardapioImagens() {
-                            const area = document.getElementById('cardapioImprimirArea');
-                            if (!area) return;
-                            const printWindow = window.open('', '', 'width=900,height=700');
-                            printWindow.document.write('<html><head><title>Imprimir Cardápio</title>');
-                            printWindow.document.write('<style>body{font-family:Arial,sans-serif;margin:20px;} .categoria{margin-top:30px;} .categoria h2{border-bottom:1px solid #ccc;padding-bottom:5px;} .produtos-grid{display:flex;flex-wrap:wrap;gap:20px;} .produto-card{border:1px solid #ddd;border-radius:8px;padding:10px;width:200px;box-shadow:0 2px 6px #eee;background:#fff;display:flex;flex-direction:column;align-items:center;} .produto-card img{max-width:100%;max-height:120px;object-fit:contain;margin-bottom:10px;} .produto-nome{font-weight:bold;margin-bottom:5px;} .produto-preco{color:#388e3c;font-size:1.1em;} @media print{body{margin:0;}}</style>');
-                            printWindow.document.write('</head><body>');
-                            printWindow.document.write(area.innerHTML);
-                            printWindow.document.write('</body></html>');
-                            printWindow.document.close();
-                            printWindow.focus();
-                            printWindow.print();
-                            printWindow.close();
-                        }
-                        }
-                        </script>
+                <!-- Aba de Editar Venda -->
+
+        <!-- Scripts do Cardápio Integrado -->
+        <script>
+        let cardapioImagensVisivel = false;
+        function alternarCardapioImagens() {
+            alert('Função alternarCardapioImagens chamada!'); // Depuração
+            cardapioImagensVisivel = !cardapioImagensVisivel;
+            const botao = document.getElementById('btnCardapioImagens');
+            const botaoImprimir = document.getElementById('btnImprimirCardapio');
+            const container = document.getElementById('cardapioImagensContainer');
+            if (container) {
+                container.style.display = cardapioImagensVisivel ? 'block' : 'none';
+                botaoImprimir.style.display = cardapioImagensVisivel ? 'inline-block' : 'none';
+                if (cardapioImagensVisivel) {
+                    botao.textContent = 'Ocultar Cardápio com Imagens';
+                    carregarCardapioNoIndex();
+                } else {
+                    botao.textContent = 'Mostrar Cardápio com Imagens';
+                }
+            } else {
+                alert('Container do cardápio não encontrado!');
+            }
+        }
+        async function carregarCardapioNoIndex() {
+            const container = document.getElementById('cardapioImagensContainer');
+            if (!container) {
+                alert('Container do cardápio não encontrado!');
+                return;
+            }
+            container.innerHTML = 'Carregando cardápio...';
+            try {
+                const resp = await fetch('/products');
+                if (!resp.ok) throw new Error('Erro ao buscar produtos');
+                const produtos = await resp.json();
+                if (!Array.isArray(produtos) || produtos.length === 0) {
+                    container.innerHTML = '<div style="color:red;font-weight:bold;">Nenhum produto encontrado para o cardápio.</div>';
+                    return;
+                }
+                const categorias = {};
+                produtos.forEach(prod => {
+                    if (!categorias[prod.categoria]) categorias[prod.categoria] = [];
+                    categorias[prod.categoria].push(prod);
+                });
+                let html = '';
+                Object.keys(categorias).forEach(cat => {
+                    html += `<div class=\"categoria\"><h2>${cat}</h2><div class=\"produtos-grid\">`;
+                    categorias[cat].forEach(prod => {
+                        const img = prod.imagemUrl || prod.imagem || 'https://via.placeholder.com/150';
+                        html += `<div class=\"produto-card\"><img src=\"${img}\" alt=\"${prod.nome}\"><div class=\"produto-nome\">${prod.nome}</div><div class=\"produto-preco\">R$ ${Number(prod.preco).toFixed(2)}</div></div>`;
+                    });
+                    html += '</div></div>';
+                });
+                container.innerHTML = `<div id='cardapioImprimirArea'><style>
+                .categoria { margin-top: 30px; }
+                .categoria h2 { border-bottom: 1px solid #ccc; padding-bottom: 5px; }
+                .produtos-grid { display: flex; flex-wrap: wrap; gap: 20px; }
+                .produto-card { border: 1px solid #ddd; border-radius: 8px; padding: 10px; width: 200px; box-shadow: 0 2px 6px #eee; background: #fff; display: flex; flex-direction: column; align-items: center; }
+                .produto-card img { max-width: 100%; max-height: 120px; object-fit: contain; margin-bottom: 10px; }
+                .produto-nome { font-weight: bold; margin-bottom: 5px; }
+                .produto-preco { color: #388e3c; font-size: 1.1em; }
+                @media print { .print-btn { display: none; } body { margin: 0; } }
+                </style>` + html + '</div>';
+            } catch (e) {
+                container.innerHTML = `<div style='color:red;font-weight:bold;'>Erro ao carregar cardápio: ${e.message}</div>`;
+                alert('Erro ao carregar cardápio: ' + e.message);
+            }
+        }
+        function imprimirCardapioImagens() {
+            const area = document.getElementById('cardapioImprimirArea');
+            if (!area) return;
+            const printWindow = window.open('', '', 'width=900,height=700');
+            printWindow.document.write('<html><head><title>Imprimir Cardápio</title>');
+            printWindow.document.write('<style>body{font-family:Arial,sans-serif;margin:20px;} .categoria{margin-top:30px;} .categoria h2{border-bottom:1px solid #ccc;padding-bottom:5px;} .produtos-grid{display:flex;flex-wrap:wrap;gap:20px;} .produto-card{border:1px solid #ddd;border-radius:8px;padding:10px;width:200px;box-shadow:0 2px 6px #eee;background:#fff;display:flex;flex-direction:column;align-items:center;} .produto-card img{max-width:100%;max-height:120px;object-fit:contain;margin-bottom:10px;} .produto-nome{font-weight:bold;margin-bottom:5px;} .produto-preco{color:#388e3c;font-size:1.1em;} @media print{body{margin:0;}}</style>');
+            printWindow.document.write('</head><body>');
+            printWindow.document.write(area.innerHTML);
+            printWindow.document.write('</body></html>');
+            printWindow.document.close();
+            printWindow.focus();
+            printWindow.print();
+            printWindow.close();
+        }
+        </script>
                 <div id="editarVenda" class="tab-content" style="padding:20px;">
                     <h3>Vendas cadastradas</h3>
                     <div class="sticky-actions" style="margin-bottom:10px;">
