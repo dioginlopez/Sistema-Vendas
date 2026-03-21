@@ -1484,20 +1484,33 @@
                     container.innerHTML = '<div style="color:red;font-weight:bold;">Nenhum produto encontrado para o cardápio.</div>';
                     return;
                 }
+                // Filtra produtos que possuem imagem
+                const produtosComImagem = produtos.filter(prod => prod.imagemUrl || prod.imagem);
+                if (produtosComImagem.length === 0) {
+                    container.innerHTML = '<div style="color:red;font-weight:bold;">Nenhum produto com imagem para exibir no cardápio.</div>';
+                    return;
+                }
+                // Agrupa por categoria
                 const categorias = {};
-                produtos.forEach(prod => {
+                produtosComImagem.forEach(prod => {
                     if (!categorias[prod.categoria]) categorias[prod.categoria] = [];
                     categorias[prod.categoria].push(prod);
                 });
                 let html = '';
                 Object.keys(categorias).forEach(cat => {
+                    const lista = categorias[cat];
+                    if (!lista || lista.length === 0) return;
                     html += `<div class=\"categoria\"><h2>${cat}</h2><div class=\"produtos-grid\">`;
-                    categorias[cat].forEach(prod => {
-                        const img = prod.imagemUrl || prod.imagem || 'https://via.placeholder.com/150';
+                    lista.forEach(prod => {
+                        const img = prod.imagemUrl || prod.imagem;
                         html += `<div class=\"produto-card\"><img src=\"${img}\" alt=\"${prod.nome}\"><div class=\"produto-nome\">${prod.nome}</div><div class=\"produto-preco\">R$ ${Number(prod.preco).toFixed(2)}</div></div>`;
                     });
                     html += '</div></div>';
                 });
+                if (!html) {
+                    container.innerHTML = '<div style="color:red;font-weight:bold;">Nenhuma categoria com produtos com imagem.</div>';
+                    return;
+                }
                 container.innerHTML = `<div id='cardapioImprimirArea'><style>
                 .categoria { margin-top: 30px; }
                 .categoria h2 { border-bottom: 1px solid #ccc; padding-bottom: 5px; }
@@ -1516,11 +1529,16 @@
         function imprimirCardapioImagens() {
             const area = document.getElementById('cardapioImprimirArea');
             if (!area) return;
+            // Remove produtos sem imagem da impressão (caso algum escape)
+            let html = area.innerHTML.replace(/<div class=\\?"produto-card\\?">([\s\S]*?)(<img[^>]+src=\\?"(https?:[^\\"]+|[^\\"]+)(\\"|\"|')[^>]*>|<img[^>]+src=\\?"\\?"[^>]*>)([\s\S]*?)<\/div>/g, function(match, before, imgTag, src, quote, after) {
+                if (src && src !== 'https://via.placeholder.com/150' && src !== '') return match;
+                return '';
+            });
             const printWindow = window.open('', '', 'width=900,height=700');
             printWindow.document.write('<html><head><title>Imprimir Cardápio</title>');
             printWindow.document.write('<style>body{font-family:Arial,sans-serif;margin:20px;} .categoria{margin-top:30px;} .categoria h2{border-bottom:1px solid #ccc;padding-bottom:5px;} .produtos-grid{display:flex;flex-wrap:wrap;gap:20px;} .produto-card{border:1px solid #ddd;border-radius:8px;padding:10px;width:200px;box-shadow:0 2px 6px #eee;background:#fff;display:flex;flex-direction:column;align-items:center;} .produto-card img{max-width:100%;max-height:120px;object-fit:contain;margin-bottom:10px;} .produto-nome{font-weight:bold;margin-bottom:5px;} .produto-preco{color:#388e3c;font-size:1.1em;} @media print{body{margin:0;}}</style>');
             printWindow.document.write('</head><body>');
-            printWindow.document.write(area.innerHTML);
+            printWindow.document.write(html);
             printWindow.document.write('</body></html>');
             printWindow.document.close();
             printWindow.focus();
