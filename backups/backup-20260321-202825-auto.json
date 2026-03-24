@@ -1,20 +1,20 @@
 {
-  "createdAt": "2026-03-12T00:19:26.296Z",
+  "createdAt": "2026-03-21T20:28:25.481Z",
   "reason": "auto",
   "source": "server-auto-backup",
   "state": {
     "products": [
       {
-        "id": 1772921710278,
-        "nome": "Del Valle Pêssego 200Ml",
+        "id": "1772921710278",
+        "nome": "Del Valle P?ssego 200Ml",
         "preco": 4,
         "estoque": 18,
         "codigoBarras": "7894900660425",
         "categoria": "Bebida"
       },
       {
-        "id": 1772928419652,
-        "nome": "Kró Presunto",
+        "id": "1772928419652",
+        "nome": "Kr? Presunto",
         "preco": 4.5,
         "estoque": 11,
         "codigoBarras": "7896221400483",
@@ -26,7 +26,7 @@
         "id": "aZAOpCDvJm-qXdLFpCMGh",
         "nome": "Diogo",
         "cpf": "097.186.911-11",
-        "senha": "131028",
+        "senha": "$2b$10$S3nJcsH/Ej.IuqSMBfJm6e1cPHPwDakqOvT3l3CReicqnpEwM70qO",
         "perfil": "admin",
         "ativo": true,
         "criadoEm": "2026-03-07T17:04:27.347Z"
@@ -35,7 +35,7 @@
         "id": "1PbVZH9v3PBO8PdAMGWCa",
         "nome": "Avelino",
         "cpf": "109.850.701-02",
-        "senha": "1234",
+        "senha": "$2b$10$u/50s0A5gJk392Tj7V82yeQML4bBlc.geFHs4zlr6KMKZ0IvUeQiO",
         "perfil": "operador",
         "ativo": true,
         "criadoEm": "2026-03-08T00:31:53.458Z"
@@ -44,7 +44,7 @@
         "id": "Dq4RJbYBQ061iFAudhcf8",
         "nome": "ADMIN",
         "cpf": "12345678901",
-        "senha": "1234",
+        "senha": "$2b$10$wHqtr8TptE5vHH9XO4hYJ.kx7vgkEIYagPUXTCJJrslC6ORuolyZS",
         "perfil": "admin",
         "ativo": true,
         "criadoEm": "2026-03-10T01:09:12.419Z"
@@ -55,12 +55,12 @@
         "id": 3,
         "data": "08/03/2026, 22:38:20",
         "vendedor": "Diogo",
-        "cliente": "DIOGO LOURENÇO LOPEZ ROSSO",
+        "cliente": "DIOGO LOUREN?O LOPEZ ROSSO",
         "fiado": true,
         "metodoPagamento": "Fiado",
         "itens": [
           {
-            "nome": "Del Valle Pêssego 200Ml",
+            "nome": "Del Valle P?ssego 200Ml",
             "quantidade": 1,
             "preco": 4
           }
@@ -74,12 +74,12 @@
         "id": 2,
         "data": "08/03/2026, 22:18:35",
         "vendedor": "Diogo",
-        "cliente": "DIOGO LOURENÇO LOPEZ ROSSO",
+        "cliente": "DIOGO LOUREN?O LOPEZ ROSSO",
         "fiado": true,
         "metodoPagamento": "Fiado",
         "itens": [
           {
-            "nome": "Kró Presunto",
+            "nome": "Kr? Presunto",
             "quantidade": 1,
             "preco": 4.5
           }
@@ -93,12 +93,12 @@
         "id": 1,
         "data": "08/03/2026, 21:45:46",
         "vendedor": "Diogo",
-        "cliente": "Cliente não informado",
+        "cliente": "Cliente n?o informado",
         "fiado": false,
         "metodoPagamento": "pix",
         "itens": [
           {
-            "nome": "Del Valle Pêssego 200Ml",
+            "nome": "Del Valle P?ssego 200Ml",
             "quantidade": 1,
             "preco": 4
           }
@@ -111,7 +111,7 @@
     ],
     "associados": [
       {
-        "nome": "DIOGO LOURENÇO LOPEZ ROSSO",
+        "nome": "DIOGO LOUREN?O LOPEZ ROSSO",
         "posto": "SD ROSSO",
         "senha": "131028"
       }

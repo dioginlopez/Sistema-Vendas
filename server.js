@@ -1,4 +1,6 @@
 const express = require('express');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const bodyParser = require('body-parser');
 const session = require('express-session');
 const crypto = require('crypto');
@@ -11,6 +13,20 @@ const path = require('path');
 const fs = require('fs');
 
 const app = express();
+app.use(helmet());
+
+// Limite de requisições para rotas sensíveis (ex: login, API)
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 100, // máximo de 100 requisições por IP
+  message: { error: 'Muitas requisições deste IP. Tente novamente mais tarde.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Aplicar o rate limit nas rotas de API
+app.use('/api/', apiLimiter);
+app.use('/login', apiLimiter);
 const PORT = process.env.PORT || 3000;
 const SESSION_SECRET = process.env.SESSION_SECRET || 's3cr3t-local';
 const isProduction = process.env.NODE_ENV === 'production';
