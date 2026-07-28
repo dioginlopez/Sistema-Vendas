@@ -3,6 +3,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const bodyParser = require('body-parser');
 const session = require('express-session');
+const pgSession = require('connect-pg-simple')(session);
 const crypto = require('crypto');
 const { Low } = require('lowdb');
 const { JSONFile } = require('lowdb/node');
@@ -689,6 +690,7 @@ initDB().catch((error) => {
 });
 
 app.use(session({
+  store: pgPool ? new pgSession({ pool: pgPool, createTableIfMissing: true }) : undefined,
   secret: SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
