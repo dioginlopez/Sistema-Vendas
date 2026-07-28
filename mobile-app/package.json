@@ -1,0 +1,31 @@
+{
+  "name": "mobile-app",
+  "version": "1.0.0",
+  "description": "Copia mobile (Android) do sistema Toca usando Capacitor",
+  "main": "index.js",
+  "scripts": {
+    "copy:web": "powershell -NoProfile -Command \"Copy-Item -Path ..\\public\\* -Destination .\\www -Recurse -Force\"",
+    "sync": "npx cap sync android",
+    "android": "npx cap open android",
+    "build:mobile": "npm run copy:web && npm run sync",
+    "auto:mobile": "node .\\scripts\\set-server-url.js && npm run build:mobile",
+    "auto:android": "npm run auto:mobile && npm run android",
+    "auto:full": "npm run auto:mobile && powershell -ExecutionPolicy Bypass -File .\\scripts\\auto-android-setup.ps1",
+    "install:apk": "powershell -ExecutionPolicy Bypass -File .\\scripts\\install-apk.ps1",
+    "set:logo": "powershell -ExecutionPolicy Bypass -File .\\scripts\\set-app-logo.ps1",
+    "set:prod-url": "node .\\scripts\\set-prod-url.js",
+    "release:keystore": "powershell -ExecutionPolicy Bypass -File .\\scripts\\create-release-keystore.ps1",
+    "release:apk": "npm run set:logo && npm run set:prod-url && npm run copy:web && npm run sync && npm run release:keystore && powershell -ExecutionPolicy Bypass -File .\\scripts\\build-release.ps1",
+    "release:install": "powershell -ExecutionPolicy Bypass -File .\\scripts\\install-release-apk.ps1",
+    "release:all": "npm run release:apk && npm run release:install"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@capacitor/android": "^8.2.0",
+    "@capacitor/cli": "^8.2.0",
+    "@capacitor/core": "^8.2.0"
+  }
+}

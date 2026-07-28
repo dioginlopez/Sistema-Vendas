@@ -1,0 +1,9 @@
+{
+  "appId": "com.toca.mobile",
+  "appName": "Toca Mobile",
+  "webDir": "www",
+  "server": {
+    "url": "https://sistema-vendas-58s2.onrender.com",
+    "cleartext": false
+  }
+}

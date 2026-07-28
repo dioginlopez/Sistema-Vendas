@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Principal - Sistema de Vendas</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Manrope", "Segoe UI", Tahoma, sans-serif;
+      min-height: 100vh;
+      background: radial-gradient(circle at 10% 10%, #f9fff2 0%, #eef5ff 45%, #f5f7fa 100%);
+      color: #183047;
+      padding: 24px;
+    }
+    .wrap {
+      max-width: 1180px;
+      margin: 0 auto;
+    }
+    .hero {
+      background: linear-gradient(135deg, #163a23 0%, #1f5d34 45%, #2d6a3f 100%);
+      color: #ffffff;
+      border-radius: 18px;
+      padding: 26px;
+      box-shadow: 0 14px 32px rgba(0, 0, 0, 0.18);
+      border: 2px solid rgba(255, 255, 255, 0.18);
+      margin-bottom: 18px;
+    }
+    .hero h1 {
+      font-size: 2rem;
+      margin-bottom: 8px;
+      font-weight: 800;
+    }
+    .hero p {
+      opacity: 0.95;
+      line-height: 1.45;
+    }
+    .badge {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      background: rgba(255, 255, 255, 0.16);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    .hub-intro {
+      margin: 18px 0 16px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: #ffffff;
+      border: 1px solid #dce6f2;
+      color: #35556f;
+      font-size: 0.95rem;
+      box-shadow: 0 6px 14px rgba(35, 59, 86, 0.06);
+    }
+    .sections {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .card {
+      background: #ffffff;
+      border: 1px solid #dce6f2;
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 8px 20px rgba(35, 59, 86, 0.08);
+    }
+    .card h2 {
+      font-size: 1.15rem;
+      margin-bottom: 10px;
+      color: #163a23;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .tab-list {
+      display: grid;
+      gap: 10px;
+    }
+    .tab-row {
+      background: #f6f9fd;
+      border: 1px solid #e5edf7;
+      border-radius: 11px;
+      padding: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .tab-info strong {
+      display: block;
+      color: #1e3e5b;
+      margin-bottom: 4px;
+    }
+    .tab-info span {
+      font-size: 0.93rem;
+      color: #385872;
+      line-height: 1.35;
+    }
+    .tab-go {
+      white-space: nowrap;
+      background: #ffffff;
+      color: #1b4769;
+      border: 1px solid #cad8e8;
+      border-radius: 8px;
+      text-decoration: none;
+      padding: 8px 12px;
+      font-weight: 700;
+      font-size: 0.88rem;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .tab-go:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 14px rgba(30, 64, 95, 0.12);
+    }
+    .foot {
+      margin-top: 14px;
+      font-size: 0.9rem;
+      color: #4e6479;
+    }
+    .build {
+      margin-top: 8px;
+      font-size: 0.82rem;
+      color: #5b7086;
+    }
+    @media (max-width: 900px) {
+      body { padding: 14px; }
+      .sections { grid-template-columns: 1fr; }
+      .hero h1 { font-size: 1.6rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <h1><i class="bi bi-compass" aria-hidden="true"></i> Principal</h1>
+      <p>Esta e a primeira tela apos o login. Aqui voce entende o que cada aba faz e escolhe para onde ir com um clique.</p>
+      <div class="badge" id="perfilAtual">Perfil: carregando...</div>
+    </section>
+
+    <div class="hub-intro">
+      Selecione abaixo a aba desejada. A navegacao principal do sistema passa por esta tela.
+    </div>
+
+    <div class="sections">
+      <article class="card">
+        <h2><i class="bi bi-cart-check" aria-hidden="true"></i> Abas de Vendas</h2>
+        <div class="tab-list">
+          <div class="tab-row">
+            <div class="tab-info">
+              <strong>Produtos</strong>
+              <span>Pesquisa por nome/codigo, adiciona itens ao carrinho e leitura rapida por codigo de barras.</span>
+            </div>
+            <a class="tab-go" href="/app/estoque">Abrir</a>
+          </div>
+          <div class="tab-row">
+            <div class="tab-info">
+              <strong>Categoria dos Produtos</strong>
+              <span>Consulta por categoria, visualiza tabela de precos e gera documento para impressao.</span>
+            </div>
+            <a class="tab-go" href="/app/categoriaProdutos">Abrir</a>
+          </div>
+          <div class="tab-row">
+            <div class="tab-info">
+              <strong>Editar Venda</strong>
+              <span>Localiza vendas ja registradas para revisao e ajustes quando necessario.</span>
+            </div>
+            <a class="tab-go" href="/app/editarVenda">Abrir</a>
+          </div>
+          <div class="tab-row">
+            <div class="tab-info">
+              <strong>Relatorio Diario</strong>
+              <span>Resumo do dia com foco nas vendas realizadas no periodo.</span>
+            </div>
+            <a class="tab-go" href="/app/relatorioDiario">Abrir</a>
+          </div>
+        </div>
+      </article>
+
+      <article class="card">
+        <h2><i class="bi bi-box-seam" aria-hidden="true"></i> Abas de Gestao</h2>
+        <div class="tab-list">
+          <div class="tab-row">
+            <div class="tab-info">
+              <strong>Estoque</strong>
+              <span>Cadastro e atualizacao de produtos, estoque, preco e imagens.</span>
+            </div>
+            <a class="tab-go" href="/app/visao">Abrir</a>
+          </div>
+          <div class="tab-row">
+            <div class="tab-info">
+              <strong>Relatorio de Vendas</strong>
+              <span>Filtros por cliente, status e data, com exportacao de documento.</span>
+            </div>
+            <a class="tab-go" href="/app/relatorio">Abrir</a>
+          </div>
+          <div class="tab-row">
+            <div class="tab-info">
+              <strong>Recebimentos</strong>
+              <span>Controle de fiados e pagamentos pendentes dos clientes.</span>
+            </div>
+            <a class="tab-go" href="/app/fiados">Abrir</a>
+          </div>
+          <div class="tab-row">
+            <div class="tab-info">
+              <strong>Associado</strong>
+              <span>Cadastro e manutencao de associados para uso em vendas fiadas.</span>
+            </div>
+            <a class="tab-go" href="/app/associado">Abrir</a>
+          </div>
+          <div class="tab-row">
+            <div class="tab-info">
+              <strong>Entrada de Dinheiro</strong>
+              <span>Registro de entradas extras e consolidacao de caixa.</span>
+            </div>
+            <a class="tab-go" href="/app/entrada">Abrir</a>
+          </div>
+          <div class="tab-row" id="itemUsuariosAdmin">
+            <div class="tab-info">
+              <strong>Usuarios (admin)</strong>
+              <span>Gestao de usuarios do sistema e permissoes de acesso.</span>
+            </div>
+            <a class="tab-go" href="/app/usuarios">Abrir</a>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <p class="foot">Dica: a qualquer momento voce pode voltar para esta tela acessando <strong>/</strong>.</p>
+    <p class="build" id="buildInfo">Versao: carregando...</p>
+  </div>
+
+  <script src="app-session.js"></script>
+  <script>
+    function redirecionarParaLogin() {
+      window.location.replace('/login.html');
+    }
+
+    if (window.TocaSession && typeof window.TocaSession.ensureBrowserSessionKey === 'function') {
+      window.TocaSession.ensureBrowserSessionKey();
+    }
+
+    window.TocaSession.installCsrfFetch(() => '');
+
+    function navegacaoEhRecarregamento() {
+      const nav = performance.getEntriesByType('navigation');
+      return Array.isArray(nav) && nav[0] && nav[0].type === 'reload';
+    }
+
+    async function carregarPerfil() {
+      try {
+        const resp = await fetch('/api/me', {
+          headers: { 'Accept': 'application/json' },
+          credentials: 'same-origin',
+          cache: 'no-store'
+        });
+
+        if (!resp.ok) {
+          redirecionarParaLogin();
+          return;
+        }
+
+        const contentType = String(resp.headers.get('content-type') || '').toLowerCase();
+        if (!contentType.includes('application/json')) {
+          redirecionarParaLogin();
+          return;
+        }
+
+        const dados = await resp.json();
+        const user = dados && dados.user ? dados.user : null;
+        const nome = user && user.nome ? user.nome : 'Usuario';
+        const perfil = user && user.perfil ? user.perfil : 'operador';
+        document.getElementById('perfilAtual').textContent = `Perfil: ${nome} (${perfil})`;
+        if (String(perfil).toLowerCase() !== 'admin') {
+          const itemUsuarios = document.getElementById('itemUsuariosAdmin');
+          if (itemUsuarios) itemUsuarios.style.display = 'none';
+        }
+      } catch (error) {
+        redirecionarParaLogin();
+      }
+    }
+
+    async function carregarVersao() {
+      try {
+        const resp = await fetch('/api/version', { cache: 'no-store' });
+        if (!resp.ok) {
+          document.getElementById('buildInfo').textContent = 'Versao: indisponivel';
+          return;
+        }
+        const dados = await resp.json();
+        const commit = String(dados.commit || '').slice(0, 8) || 'n/a';
+        const version = String(dados.version || 'n/a');
+        document.getElementById('buildInfo').textContent = `Versao: ${version} | Commit: ${commit}`;
+      } catch (error) {
+        document.getElementById('buildInfo').textContent = 'Versao: indisponivel';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      window.addEventListener('offline', () => {
+        const buildInfo = document.getElementById('buildInfo');
+        if (buildInfo) {
+          buildInfo.textContent = 'Conexao instavel. Tentando manter a sessao ativa.';
+        }
+      });
+
+      await carregarPerfil();
+      carregarVersao();
+    });
+  </script>
+</body>
+</html>
