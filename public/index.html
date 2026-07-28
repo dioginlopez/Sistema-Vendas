@@ -1621,7 +1621,7 @@
                 <label for="produtoImagemUrl">Imagem do Produto (busca automatica):</label>
                 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
                     <input type="text" id="produtoImagemUrl" class="form-control" placeholder="Cole a URL ou escolha uma imagem abaixo" style="flex:1;min-width:220px;">
-                    <button type="button" class="btn btn-secondary" onclick="buscarImagensInternetProduto()" style="width:auto;margin-top:0;padding:10px 14px;">Buscar Imagem</button>
+                    <button type="button" class="btn btn-secondary" onclick="buscarImagensInternetProduto()" style="width:auto;margin-top:0;padding:10px 14px;">Gerar Imagem</button>
                     <button type="button" class="btn btn-secondary" onclick="baixarImagemProdutoAtual()" style="width:auto;margin-top:0;padding:10px 14px;">Baixar Foto</button>
                 </div>
                 <div style="margin-top:8px;">
@@ -2036,10 +2036,10 @@
             const categoria = String(document.getElementById('produtoCategoria')?.value || '').trim();
             const sabor = extrairSaborAproximado(nome, marca);
             const codigoValido = String(codigoBarras).replace(/\D/g, '').length >= 8;
-            const nomeMarcaValidos = Boolean(nome && marca);
+            const possuiContexto = Boolean(nome || marca || categoria || sabor);
 
-            if (!codigoValido && !nomeMarcaValidos) {
-                mostrarAlerta('Para gerar imagem, informe codigo de barras valido ou preencha nome e marca', 'erro');
+            if (!codigoValido && !possuiContexto) {
+                mostrarAlerta('Para gerar imagem, informe codigo de barras valido ou preencha nome/marca/categoria', 'erro');
                 return;
             }
 
@@ -3391,6 +3391,18 @@
             if (codigoBarras && produtos.some(p => p.id !== (produtoEmEdicao ? produtoEmEdicao.id : null) && String(p.codigoBarras || '') === codigoBarras)) {
                 mostrarAlerta('Codigo de barras ja cadastrado para outro produto', 'erro');
                 return;
+            }
+
+            if (!imagemUrl) {
+                const sabor = extrairSaborAproximado(nome, marca);
+                const opcoesAuto = await buscarOpcoesImagemProduto(nome, codigoBarras, marca, categoria, sabor);
+                if (opcoesAuto.length) {
+                    imagemUrl = String(opcoesAuto[0].imageUrl || '').trim();
+                    if (imagemUrl) {
+                        renderizarOpcoesImagemProduto(opcoesAuto);
+                        atualizarPreviewImagemProduto(imagemUrl, 'Imagem gerada automaticamente no cadastro');
+                    }
+                }
             }
 
             if (produtoEmEdicao) {
